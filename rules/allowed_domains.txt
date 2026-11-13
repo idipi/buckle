@@ -56,3 +56,26 @@ raw.githubusercontent.com
 developer.apple.com
 docs.python.org
 nodejs.org
+
+# Developer Communities & QA
+stackoverflow.com
+*.stackoverflow.com
+*.stackexchange.com
+
+# Hardware, Embedded & Microcontroller Forums
+*.arduino.cc
+arduino.cc
+*.esp32.com
+esp32.com
+docs.espressif.com
+*.espressif.com
+*.eevblog.com
+eevblog.com
+*.adafruit.com
+adafruit.com
+*.sparkfun.com
+sparkfun.com
+*.raspberrypi.com
+raspberrypi.com
+community.st.com
+*.st.com

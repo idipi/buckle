@@ -1,4 +1,6 @@
-# macos-agent-sandbox
+# buckle
+
+> **Buckle up your AI agents on macOS.**
 
 A high-performance, kernel-level security sandbox and hardware capability broker for running AI coding agents, autonomous LLM workflows, and untrusted scripts on **macOS (Apple Silicon & Intel)**.
 
@@ -17,8 +19,8 @@ Built in **100% pure native Rust** with direct FFI bindings to Apple's `libSyste
                                      ┌────────────────────────┴────────────────────────┐
                                      ▼                                                 ▼
 ┌────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────┐
-│     1. Apple Seatbelt (In-Memory Kernel Sandbox)       │   │        2. Audited Capability Broker (CLI & MCP)         │
-│   Native Rust FFI -> libSystem sandbox_init() in RAM   │   │     Safely bridges to macOS APIs & Hardware Devices     │
+│          1. Apple Seatbelt Kernel Sandbox              │   │         2. Audited Hardware & OS Capability Broker      │
+│     Direct Rust FFI -> libSystem sandbox_init()        │   │             Native CLI & MCP JSON-RPC Stdio             │
 ├────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
 │ [✓] Read/Write: Current project workspace & tmpfs      │   │ [✓] Serial: /dev/cu.* microcontrollers (UART)           │
 │ [✓] Read-only:  System binaries, toolchains, libs      │   │ [✓] USB:    Query USB hardware topology via profiler    │
@@ -28,6 +30,22 @@ Built in **100% pure native Rust** with direct FFI bindings to Apple's `libSyste
 │ [X] BLOCKED:    Raw disk access (/dev/disk*, rdisk*)   │   │ [✓] MCP:    High-speed JSON-RPC 2.0 stdio server        │
 │ [X] SCRUBBED:   Host secrets scrubbed from environment │   │ [✓] Clean:  Automatic orphan process tree reaper       │
 └────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## The Killer Feature: `buckle up`
+
+One simple, intuitive command to safely run anything:
+
+```bash
+# 1. Execute a single isolated command inside the sandbox:
+buckle up cargo build
+buckle up -- git status
+buckle up --devices serial -- probe-rs run firmware.elf
+
+# 2. Drop directly into an isolated interactive subshell (no args needed):
+buckle up
 ```
 
 ---
@@ -53,7 +71,7 @@ Built in **100% pure native Rust** with direct FFI bindings to Apple's `libSyste
    - High-performance native **Model Context Protocol (MCP)** server over stdio for plug-and-play integration with Antigravity, Claude, and Cursor.
 
 5. **Process Group & Ephemeral Session Management**:
-   - Allocates dedicated ephemeral session storage under `/private/tmp/agent_sandbox/session_*` with RAII automatic cleanup on exit.
+   - Allocates dedicated ephemeral session storage under `/private/tmp/buckle/session_*` with RAII automatic cleanup on exit.
    - Tracks child process groups (`setpgid`) and reaps orphaned background daemons on exit.
 
 ---
@@ -63,16 +81,16 @@ Built in **100% pure native Rust** with direct FFI bindings to Apple's `libSyste
 ### Via Homebrew Tap
 ```bash
 brew tap idipi/tap
-brew install agent-sandbox
+brew install buckle
 ```
 
 ### Build from Source
 ```bash
-git clone https://github.com/idipi/macos-agent-sandbox.git
-cd macos-agent-sandbox
+git clone https://github.com/idipi/buckle.git
+cd buckle
 cargo build --release
 ```
-Compiled binaries will be in `target/release/agent-sandbox` and `target/release/agent-broker`.
+Compiled binaries will be in `target/release/buckle` and `target/release/buckle-broker`.
 
 ---
 
@@ -82,13 +100,13 @@ Compiled binaries will be in `target/release/agent-sandbox` and `target/release/
 Verify that your macOS version, Seatbelt FFI engine, credential lock, and serial devices are active:
 
 ```bash
-agent-sandbox doctor
+buckle doctor
 ```
 
 Output:
 ```
 ==================================================
-   macOS Agent Sandbox - System Health Audit (Rust)
+   Buckle (macOS Agent Sandbox) - Health Audit    
 ==================================================
 [+] macOS Version:    15.8.3 (arm64)
 [+] Kernel Sandbox:   Direct FFI libSystem.B.dylib (sandbox_init)
@@ -98,22 +116,15 @@ Output:
 Audit status: All primary security controls operational.
 ```
 
-### 2. Run an Isolated Command
-Execute any command within the current workspace:
+### 2. Buckle Up!
+Execute an isolated command or launch a sandboxed shell:
 
 ```bash
-# Sandboxed compilation
-agent-sandbox run cargo build
+# Execute isolated command
+buckle up cargo test
 
-# Sandboxed Git status
-agent-sandbox run git status
-```
-
-### 3. Launch an Interactive Sandboxed Shell
-Spawn an isolated subshell for prolonged development sessions:
-
-```bash
-agent-sandbox shell
+# Launch interactive sandboxed shell
+buckle up
 ```
 
 Inside this shell:
@@ -121,11 +132,11 @@ Inside this shell:
 * Try `touch ~/.test` $\rightarrow$ `Operation not permitted`
 * Try `touch file.txt` (in workspace) $\rightarrow$ `Allowed`
 
-### 4. Run the Automated Security Test Suite
-Verify that all 12 kernel isolation invariants pass:
+### 3. Run the Automated Security Test Suite
+Verify that all 14 kernel isolation invariants pass:
 
 ```bash
-agent-sandbox test
+buckle test
 # or: cargo test --test integration_tests
 ```
 
@@ -133,23 +144,25 @@ agent-sandbox test
 
 ## Command Reference
 
-### `agent-sandbox`
+### `buckle`
 
 ```bash
-agent-sandbox [COMMAND]
+buckle [COMMAND]
 
 Commands:
+  up           Buckle up: execute command in sandbox, or launch interactive shell if empty
   run          Execute an isolated command inside the Apple Seatbelt kernel sandbox
   shell        Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage
   doctor       Audit system security controls and in-memory kernel sandbox
-  test         Execute automated security isolation regression test suite (12 invariants)
+  test         Execute automated security isolation regression test suite (14 invariants)
   broker       Hardware and macOS capability broker interface
   mcp          Run Model Context Protocol (MCP) stdio server
+  version      Print version information (-v, -V, --version)
   completions  Generate shell autocompletion script (bash, zsh, fish, powershell)
   man          Render Unix roff man page documentation to stdout
 ```
 
-#### `agent-sandbox run` Options
+#### `buckle up` Options
 * `-w, --workspace <PATH>`: Target workspace directory (default: current directory). Guarded against running directly in `$HOME`.
 * `-n, --net <allow|proxy|deny>`: Outbound network policy (default: `allow`).
 * `-d, --devices <serial|allow|deny>`: Hardware device access policy (default: `serial`).
@@ -160,31 +173,27 @@ Commands:
 
 ---
 
-### `agent-broker` (Hardware & macOS Interface)
+### `buckle-broker` (Hardware & macOS Interface)
 
 ```bash
 # Enumerate serial devices (/dev/cu.*)
-agent-broker serial list
+buckle-broker serial list
 
 # Inspect connected USB devices
-agent-broker usb list
+buckle-broker usb list
 
 # Display safe native notification
-agent-broker notify --title "Build Complete" --message "All tests passed."
+buckle-broker notify --title "Build Complete" --message "All tests passed."
 
 # Read or write clipboard safely
-agent-broker clip get
-agent-broker clip set "Cleaned output"
+buckle-broker clip get
+buckle-broker clip set "Cleaned output"
 
 # Query system telemetry
-agent-broker status
+buckle-broker status
 
 # Start as Model Context Protocol (MCP) server over stdio
-agent-broker mcp
-
-# Shell completions and man pages
-agent-broker completions zsh
-agent-broker man
+buckle-broker mcp
 ```
 
 ---
@@ -192,43 +201,43 @@ agent-broker man
 ## AI Agent Integration Guide
 
 ### Integration with Antigravity / Claude / Cursor via MCP
-Add the broker to your agent's MCP configuration (`mcp_config.json`):
+Add `buckle-broker` to your agent's MCP configuration (`mcp_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "macos-broker": {
-      "command": "/Users/ench/projects/macos-agent-sandbox/bin/agent-broker",
+    "buckle-broker": {
+      "command": "/Users/ench/projects/macos-agent-sandbox/bin/buckle-broker",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-This gives the agent structured tools (`device_list_serial`, `device_list_usb`, `macos_notification`, `macos_clipboard_read`, `macos_clipboard_write`, `macos_system_telemetry`) while ensuring all terminal commands run wrapped inside `agent-sandbox run`.
+This gives the agent structured tools (`device_list_serial`, `device_list_usb`, `macos_notification`, `macos_clipboard_read`, `macos_clipboard_write`, `macos_system_telemetry`) while ensuring all terminal commands run wrapped inside `buckle up`.
 
 ### Shell Alias Wrapper for Everyday Use
 Add to your `~/.zshrc`:
 
 ```bash
-alias safe="agent-sandbox run"
-alias safe-shell="agent-sandbox shell"
+alias buckle-up="buckle up"
+alias safe="buckle up"
 ```
 
 ---
 
 ## Directory Structure
 
-* [src/main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/main.rs) - CLI entry point with styled clap interface.
-* [src/bin/broker_main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/bin/broker_main.rs) - Standalone `agent-broker` binary CLI.
+* [src/main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/main.rs) - Primary CLI runner (`buckle` and `buckle up`).
+* [src/bin/broker_main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/bin/broker_main.rs) - Standalone `buckle-broker` binary CLI.
 * [src/ffi.rs](file:///Users/ench/projects/macos-agent-sandbox/src/ffi.rs) - Direct C FFI bindings to Apple Seatbelt (`sandbox_init`).
 * [src/process.rs](file:///Users/ench/projects/macos-agent-sandbox/src/process.rs) - Process manager (`fork`, `execve`, TTY `tcsetpgrp`, `rlimit`, session cleanup).
 * [src/profile.rs](file:///Users/ench/projects/macos-agent-sandbox/src/profile.rs) - In-memory SBPL profile compiler and template engine.
 * [src/env.rs](file:///Users/ench/projects/macos-agent-sandbox/src/env.rs) - Environment variable secret sanitizer.
 * [src/broker.rs](file:///Users/ench/projects/macos-agent-sandbox/src/broker.rs) - Audited hardware and macOS capability implementations.
-* [src/mcp.rs](file:///Users/ench/projects/macos-agent-sandbox/src/mcp.rs) - Model Context Protocol JSON-RPC stdio engine.
+* [src/mcp.rs](file:///Users/ench/projects/macos-agent-sandbox/src/mcp.rs) - Model Context Protocol JSON-RPC stdio engine (`buckle-broker`).
 * [src/cli.rs](file:///Users/ench/projects/macos-agent-sandbox/src/cli.rs) - Terminal UI styling, completions, and man page rendering.
-* [share/man/man1/](file:///Users/ench/projects/macos-agent-sandbox/share/man/man1) - Unix roff man pages (`agent-sandbox.1`, `agent-broker.1`).
+* [share/man/man1/](file:///Users/ench/projects/macos-agent-sandbox/share/man/man1) - Unix roff man pages (`buckle.1`, `buckle-broker.1`).
 * [completions/](file:///Users/ench/projects/macos-agent-sandbox/completions) - Pre-generated shell completions for zsh, bash, fish.
 * [profiles/default.sb.template](file:///Users/ench/projects/macos-agent-sandbox/profiles/default.sb.template) - Master Apple Seatbelt profile template (SBPL).
-* [tests/integration_tests.rs](file:///Users/ench/projects/macos-agent-sandbox/tests/integration_tests.rs) - Automated security regression test suite (12 invariants).
+* [tests/integration_tests.rs](file:///Users/ench/projects/macos-agent-sandbox/tests/integration_tests.rs) - Automated security regression test suite (14 invariants).

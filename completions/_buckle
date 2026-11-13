@@ -1,8 +1,8 @@
-#compdef agent-sandbox
+#compdef buckle
 
 autoload -U is-at-least
 
-_agent-sandbox() {
+_buckle() {
     typeset -A opt_args
     typeset -a _arguments_options
     local ret=1
@@ -20,16 +20,34 @@ _agent-sandbox() {
 '--help[Print help]' \
 '-V[Print version]' \
 '--version[Print version]' \
-":: :_agent-sandbox_commands" \
-"*::: :->agent-sandbox" \
+":: :_buckle_commands" \
+"*::: :->buckle" \
 && ret=0
     case $state in
-    (agent-sandbox)
+    (buckle)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:agent-sandbox-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:buckle-command-$line[1]:"
         case $line[1] in
-            (run)
+            (up)
+_arguments "${_arguments_options[@]}" : \
+'-w+[Path to workspace directory (default\: current working directory)]:WORKSPACE:_files' \
+'--workspace=[Path to workspace directory (default\: current working directory)]:WORKSPACE:_files' \
+'-n+[Outbound network policy\: allow, proxy, or deny]:NET:_default' \
+'--net=[Outbound network policy\: allow, proxy, or deny]:NET:_default' \
+'-d+[Hardware and serial device policy\: serial, allow, or deny]:DEVICES:_default' \
+'--devices=[Hardware and serial device policy\: serial, allow, or deny]:DEVICES:_default' \
+'*--writable=[Additional directories permitted for write operations]:WRITABLE:_files' \
+'*-e+[Set an environment variable inside the sandbox (KEY=VAL)]:ENV:_default' \
+'*--env=[Set an environment variable inside the sandbox (KEY=VAL)]:ENV:_default' \
+'*--pass-env=[Explicitly pass through a sensitive host environment variable]:PASS_ENV:_default' \
+'--allow-home[Explicitly permit using \$HOME directory as workspace]' \
+'-h[Print help]' \
+'--help[Print help]' \
+'*::command -- Command and arguments to execute inside the sandbox (launches interactive shell if omitted):_default' \
+&& ret=0
+;;
+(run)
 _arguments "${_arguments_options[@]}" : \
 '-w+[Path to workspace directory (default\: current working directory)]:WORKSPACE:_files' \
 '--workspace=[Path to workspace directory (default\: current working directory)]:WORKSPACE:_files' \
@@ -80,7 +98,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_agent-sandbox__subcmd__broker_commands" \
+":: :_buckle__subcmd__broker_commands" \
 "*::: :->broker" \
 && ret=0
 
@@ -88,7 +106,7 @@ _arguments "${_arguments_options[@]}" : \
     (broker)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:agent-sandbox-broker-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:buckle-broker-command-$line[1]:"
         case $line[1] in
             (serial-list)
 _arguments "${_arguments_options[@]}" : \
@@ -122,7 +140,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_agent-sandbox__subcmd__broker__subcmd__help_commands" \
+":: :_buckle__subcmd__broker__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -130,7 +148,7 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:agent-sandbox-broker-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:buckle-broker-help-command-$line[1]:"
         case $line[1] in
             (serial-list)
 _arguments "${_arguments_options[@]}" : \
@@ -187,7 +205,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_agent-sandbox__subcmd__help_commands" \
+":: :_buckle__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -195,9 +213,13 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:agent-sandbox-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:buckle-help-command-$line[1]:"
         case $line[1] in
-            (run)
+            (up)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(run)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -215,7 +237,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (broker)
 _arguments "${_arguments_options[@]}" : \
-":: :_agent-sandbox__subcmd__help__subcmd__broker_commands" \
+":: :_buckle__subcmd__help__subcmd__broker_commands" \
 "*::: :->broker" \
 && ret=0
 
@@ -223,7 +245,7 @@ _arguments "${_arguments_options[@]}" : \
     (broker)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:agent-sandbox-help-broker-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:buckle-help-broker-command-$line[1]:"
         case $line[1] in
             (serial-list)
 _arguments "${_arguments_options[@]}" : \
@@ -274,9 +296,10 @@ esac
 esac
 }
 
-(( $+functions[_agent-sandbox_commands] )) ||
-_agent-sandbox_commands() {
+(( $+functions[_buckle_commands] )) ||
+_buckle_commands() {
     local commands; commands=(
+'up:Buckle up\: execute command in sandbox, or launch interactive shell if empty' \
 'run:Execute an isolated command inside the Apple Seatbelt kernel sandbox' \
 'shell:Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage' \
 'doctor:Audit system security controls and in-memory kernel sandbox' \
@@ -288,10 +311,10 @@ _agent-sandbox_commands() {
 'man:Render Unix roff man page documentation to stdout' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'agent-sandbox commands' commands "$@"
+    _describe -t commands 'buckle commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker_commands] )) ||
-_agent-sandbox__subcmd__broker_commands() {
+(( $+functions[_buckle__subcmd__broker_commands] )) ||
+_buckle__subcmd__broker_commands() {
     local commands; commands=(
 'serial-list:List active serial ports (/dev/cu.*)' \
 'usb-list:Query USB device topology' \
@@ -299,10 +322,10 @@ _agent-sandbox__subcmd__broker_commands() {
 'status:Query macOS battery and uptime telemetry' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'agent-sandbox broker commands' commands "$@"
+    _describe -t commands 'buckle broker commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help_commands] )) ||
+_buckle__subcmd__broker__subcmd__help_commands() {
     local commands; commands=(
 'serial-list:List active serial ports (/dev/cu.*)' \
 'usb-list:Query USB device topology' \
@@ -310,66 +333,67 @@ _agent-sandbox__subcmd__broker__subcmd__help_commands() {
 'status:Query macOS battery and uptime telemetry' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'agent-sandbox broker help commands' commands "$@"
+    _describe -t commands 'buckle broker help commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help__subcmd__help_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help__subcmd__help_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help__subcmd__help_commands] )) ||
+_buckle__subcmd__broker__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker help help commands' commands "$@"
+    _describe -t commands 'buckle broker help help commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help__subcmd__notify_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help__subcmd__notify_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help__subcmd__notify_commands] )) ||
+_buckle__subcmd__broker__subcmd__help__subcmd__notify_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker help notify commands' commands "$@"
+    _describe -t commands 'buckle broker help notify commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help__subcmd__serial-list_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help__subcmd__serial-list_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help__subcmd__serial-list_commands] )) ||
+_buckle__subcmd__broker__subcmd__help__subcmd__serial-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker help serial-list commands' commands "$@"
+    _describe -t commands 'buckle broker help serial-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help__subcmd__status_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help__subcmd__status_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help__subcmd__status_commands] )) ||
+_buckle__subcmd__broker__subcmd__help__subcmd__status_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker help status commands' commands "$@"
+    _describe -t commands 'buckle broker help status commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__help__subcmd__usb-list_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__help__subcmd__usb-list_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__help__subcmd__usb-list_commands] )) ||
+_buckle__subcmd__broker__subcmd__help__subcmd__usb-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker help usb-list commands' commands "$@"
+    _describe -t commands 'buckle broker help usb-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__notify_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__notify_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__notify_commands] )) ||
+_buckle__subcmd__broker__subcmd__notify_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker notify commands' commands "$@"
+    _describe -t commands 'buckle broker notify commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__serial-list_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__serial-list_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__serial-list_commands] )) ||
+_buckle__subcmd__broker__subcmd__serial-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker serial-list commands' commands "$@"
+    _describe -t commands 'buckle broker serial-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__status_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__status_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__status_commands] )) ||
+_buckle__subcmd__broker__subcmd__status_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker status commands' commands "$@"
+    _describe -t commands 'buckle broker status commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__broker__subcmd__usb-list_commands] )) ||
-_agent-sandbox__subcmd__broker__subcmd__usb-list_commands() {
+(( $+functions[_buckle__subcmd__broker__subcmd__usb-list_commands] )) ||
+_buckle__subcmd__broker__subcmd__usb-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox broker usb-list commands' commands "$@"
+    _describe -t commands 'buckle broker usb-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__completions_commands] )) ||
-_agent-sandbox__subcmd__completions_commands() {
+(( $+functions[_buckle__subcmd__completions_commands] )) ||
+_buckle__subcmd__completions_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox completions commands' commands "$@"
+    _describe -t commands 'buckle completions commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__doctor_commands] )) ||
-_agent-sandbox__subcmd__doctor_commands() {
+(( $+functions[_buckle__subcmd__doctor_commands] )) ||
+_buckle__subcmd__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox doctor commands' commands "$@"
+    _describe -t commands 'buckle doctor commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help_commands] )) ||
-_agent-sandbox__subcmd__help_commands() {
+(( $+functions[_buckle__subcmd__help_commands] )) ||
+_buckle__subcmd__help_commands() {
     local commands; commands=(
+'up:Buckle up\: execute command in sandbox, or launch interactive shell if empty' \
 'run:Execute an isolated command inside the Apple Seatbelt kernel sandbox' \
 'shell:Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage' \
 'doctor:Audit system security controls and in-memory kernel sandbox' \
@@ -381,116 +405,126 @@ _agent-sandbox__subcmd__help_commands() {
 'man:Render Unix roff man page documentation to stdout' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'agent-sandbox help commands' commands "$@"
+    _describe -t commands 'buckle help commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__broker_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__broker_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__broker_commands] )) ||
+_buckle__subcmd__help__subcmd__broker_commands() {
     local commands; commands=(
 'serial-list:List active serial ports (/dev/cu.*)' \
 'usb-list:Query USB device topology' \
 'notify:Post a safe native macOS user notification' \
 'status:Query macOS battery and uptime telemetry' \
     )
-    _describe -t commands 'agent-sandbox help broker commands' commands "$@"
+    _describe -t commands 'buckle help broker commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__broker__subcmd__notify_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__broker__subcmd__notify_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__broker__subcmd__notify_commands] )) ||
+_buckle__subcmd__help__subcmd__broker__subcmd__notify_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help broker notify commands' commands "$@"
+    _describe -t commands 'buckle help broker notify commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__broker__subcmd__serial-list_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__broker__subcmd__serial-list_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__broker__subcmd__serial-list_commands] )) ||
+_buckle__subcmd__help__subcmd__broker__subcmd__serial-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help broker serial-list commands' commands "$@"
+    _describe -t commands 'buckle help broker serial-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__broker__subcmd__status_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__broker__subcmd__status_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__broker__subcmd__status_commands] )) ||
+_buckle__subcmd__help__subcmd__broker__subcmd__status_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help broker status commands' commands "$@"
+    _describe -t commands 'buckle help broker status commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__broker__subcmd__usb-list_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__broker__subcmd__usb-list_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__broker__subcmd__usb-list_commands] )) ||
+_buckle__subcmd__help__subcmd__broker__subcmd__usb-list_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help broker usb-list commands' commands "$@"
+    _describe -t commands 'buckle help broker usb-list commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__completions_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__completions_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__completions_commands] )) ||
+_buckle__subcmd__help__subcmd__completions_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help completions commands' commands "$@"
+    _describe -t commands 'buckle help completions commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__doctor_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__doctor_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__doctor_commands] )) ||
+_buckle__subcmd__help__subcmd__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help doctor commands' commands "$@"
+    _describe -t commands 'buckle help doctor commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__help_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__help_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__help_commands] )) ||
+_buckle__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help help commands' commands "$@"
+    _describe -t commands 'buckle help help commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__man_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__man_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__man_commands] )) ||
+_buckle__subcmd__help__subcmd__man_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help man commands' commands "$@"
+    _describe -t commands 'buckle help man commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__mcp_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__mcp_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__mcp_commands] )) ||
+_buckle__subcmd__help__subcmd__mcp_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help mcp commands' commands "$@"
+    _describe -t commands 'buckle help mcp commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__run_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__run_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__run_commands] )) ||
+_buckle__subcmd__help__subcmd__run_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help run commands' commands "$@"
+    _describe -t commands 'buckle help run commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__shell_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__shell_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__shell_commands] )) ||
+_buckle__subcmd__help__subcmd__shell_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help shell commands' commands "$@"
+    _describe -t commands 'buckle help shell commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__test_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__test_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__test_commands] )) ||
+_buckle__subcmd__help__subcmd__test_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help test commands' commands "$@"
+    _describe -t commands 'buckle help test commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__help__subcmd__version_commands] )) ||
-_agent-sandbox__subcmd__help__subcmd__version_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__up_commands] )) ||
+_buckle__subcmd__help__subcmd__up_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox help version commands' commands "$@"
+    _describe -t commands 'buckle help up commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__man_commands] )) ||
-_agent-sandbox__subcmd__man_commands() {
+(( $+functions[_buckle__subcmd__help__subcmd__version_commands] )) ||
+_buckle__subcmd__help__subcmd__version_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox man commands' commands "$@"
+    _describe -t commands 'buckle help version commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__mcp_commands] )) ||
-_agent-sandbox__subcmd__mcp_commands() {
+(( $+functions[_buckle__subcmd__man_commands] )) ||
+_buckle__subcmd__man_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox mcp commands' commands "$@"
+    _describe -t commands 'buckle man commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__run_commands] )) ||
-_agent-sandbox__subcmd__run_commands() {
+(( $+functions[_buckle__subcmd__mcp_commands] )) ||
+_buckle__subcmd__mcp_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox run commands' commands "$@"
+    _describe -t commands 'buckle mcp commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__shell_commands] )) ||
-_agent-sandbox__subcmd__shell_commands() {
+(( $+functions[_buckle__subcmd__run_commands] )) ||
+_buckle__subcmd__run_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox shell commands' commands "$@"
+    _describe -t commands 'buckle run commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__test_commands] )) ||
-_agent-sandbox__subcmd__test_commands() {
+(( $+functions[_buckle__subcmd__shell_commands] )) ||
+_buckle__subcmd__shell_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox test commands' commands "$@"
+    _describe -t commands 'buckle shell commands' commands "$@"
 }
-(( $+functions[_agent-sandbox__subcmd__version_commands] )) ||
-_agent-sandbox__subcmd__version_commands() {
+(( $+functions[_buckle__subcmd__test_commands] )) ||
+_buckle__subcmd__test_commands() {
     local commands; commands=()
-    _describe -t commands 'agent-sandbox version commands' commands "$@"
+    _describe -t commands 'buckle test commands' commands "$@"
+}
+(( $+functions[_buckle__subcmd__up_commands] )) ||
+_buckle__subcmd__up_commands() {
+    local commands; commands=()
+    _describe -t commands 'buckle up commands' commands "$@"
+}
+(( $+functions[_buckle__subcmd__version_commands] )) ||
+_buckle__subcmd__version_commands() {
+    local commands; commands=()
+    _describe -t commands 'buckle version commands' commands "$@"
 }
 
-if [ "$funcstack[1]" = "_agent-sandbox" ]; then
-    _agent-sandbox "$@"
+if [ "$funcstack[1]" = "_buckle" ]; then
+    _buckle "$@"
 else
-    compdef _agent-sandbox agent-sandbox
+    compdef _buckle buckle
 fi

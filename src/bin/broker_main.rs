@@ -1,16 +1,16 @@
-//! agent-broker: Standalone CLI and MCP Server for Hardware & macOS Capabilities.
+//! buckle-broker: Standalone CLI and MCP Server for Hardware & macOS Capabilities.
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 
-use macos_agent_sandbox::broker::{DeviceBroker, MacOSBroker};
-use macos_agent_sandbox::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
-use macos_agent_sandbox::mcp::run_mcp_stdio_server;
+use buckle::broker::{DeviceBroker, MacOSBroker};
+use buckle::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
+use buckle::mcp::run_mcp_stdio_server;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "agent-broker",
-    about = "Audited macOS System and Hardware Broker for AI Agents",
+    name = "buckle-broker",
+    about = "Buckle: Audited Hardware & macOS Capability Broker for AI Agents",
     version,
     styles = clap_styles()
 )]
@@ -130,11 +130,11 @@ fn main() -> Result<()> {
         },
         Commands::Mcp => run_mcp_stdio_server()?,
         Commands::Version => {
-            println!("agent-broker {}", env!("CARGO_PKG_VERSION"));
+            println!("buckle-broker {}", env!("CARGO_PKG_VERSION"));
         }
         Commands::Completions { shell } => {
             let mut cmd = Cli::command();
-            generate_completions(shell, &mut cmd, "agent-broker");
+            generate_completions(shell, &mut cmd, "buckle-broker");
         }
         Commands::Man => {
             let cmd = Cli::command();

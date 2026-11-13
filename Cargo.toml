@@ -1,5 +1,5 @@
 [package]
-name = "macos-agent-sandbox"
+name = "buckle"
 version = "0.2.0"
 edition = "2021"
 authors = ["Evgeniy <ench@flammenwerfer.local>"]
@@ -7,11 +7,11 @@ description = "Kernel-level Seatbelt Sandbox & Hardware Capability Broker for AI
 license = "MIT OR Apache-2.0"
 
 [[bin]]
-name = "agent-sandbox"
+name = "buckle"
 path = "src/main.rs"
 
 [[bin]]
-name = "agent-broker"
+name = "buckle-broker"
 path = "src/bin/broker_main.rs"
 
 [dependencies]

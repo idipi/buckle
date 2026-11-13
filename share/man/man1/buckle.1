@@ -1,12 +1,12 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH agent-sandbox 1  "agent-sandbox 0.2.0" 
+.TH buckle 1  "buckle 0.2.0" 
 .SH NAME
-agent\-sandbox \- Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
+buckle \- Buckle: Kernel\-Level Seatbelt Sandbox for AI Agents on macOS
 .SH SYNOPSIS
-\fBagent\-sandbox\fR [\fB\-v \fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIsubcommands\fR]
+\fBbuckle\fR [\fB\-v \fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
-Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
+Buckle: Kernel\-Level Seatbelt Sandbox for AI Agents on macOS
 .SH OPTIONS
 .TP
 \fB\-v\fR
@@ -19,34 +19,37 @@ Print help
 Print version
 .SH SUBCOMMANDS
 .TP
-agent\-sandbox\-run(1)
+buckle\-up(1)
+Buckle up: execute command in sandbox, or launch interactive shell if empty
+.TP
+buckle\-run(1)
 Execute an isolated command inside the Apple Seatbelt kernel sandbox
 .TP
-agent\-sandbox\-shell(1)
+buckle\-shell(1)
 Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage
 .TP
-agent\-sandbox\-doctor(1)
+buckle\-doctor(1)
 Audit system security controls and in\-memory kernel sandbox
 .TP
-agent\-sandbox\-test(1)
+buckle\-test(1)
 Execute automated security isolation regression test suite (12 invariants)
 .TP
-agent\-sandbox\-broker(1)
+buckle\-broker(1)
 Hardware and macOS capability broker interface
 .TP
-agent\-sandbox\-mcp(1)
+buckle\-mcp(1)
 Run Model Context Protocol (MCP) stdio server
 .TP
-agent\-sandbox\-version(1)
+buckle\-version(1)
 Print version information
 .TP
-agent\-sandbox\-completions(1)
+buckle\-completions(1)
 Generate shell autocompletion script (bash, zsh, fish, powershell)
 .TP
-agent\-sandbox\-man(1)
+buckle\-man(1)
 Render Unix roff man page documentation to stdout
 .TP
-agent\-sandbox\-help(1)
+buckle\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
 v0.2.0

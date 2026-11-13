@@ -10,7 +10,7 @@ use crate::ffi::apply_sandbox_profile;
 
 pub fn run_doctor() -> Result<()> {
     println!("{}", "==================================================".bold());
-    println!("{}", "   macOS Agent Sandbox - System Health Audit (Rust)".bold().cyan());
+    println!("{}", "   Buckle (macOS Agent Sandbox) - Health Audit    ".bold().cyan());
     println!("{}", "==================================================".bold());
 
     // 1. macOS Version

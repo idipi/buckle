@@ -1,13 +1,13 @@
-//! Native Rust Integration Tests for macos-agent-sandbox.
+//! Native Rust Integration Tests for buckle.
 //! Verifies kernel-level isolation, credential locking, env scrubbing, and device access.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
-use macos_agent_sandbox::broker::{DeviceBroker, MacOSBroker};
-use macos_agent_sandbox::process::{execute_sandboxed_process, RunOptions};
-use macos_agent_sandbox::profile::{render_profile, DeviceMode, NetworkMode, ProfileConfig};
+use buckle::broker::{DeviceBroker, MacOSBroker};
+use buckle::process::{execute_sandboxed_process, RunOptions};
+use buckle::profile::{render_profile, DeviceMode, NetworkMode, ProfileConfig};
 
 struct TestContext {
     _dir: tempfile::TempDir,
@@ -156,11 +156,11 @@ fn test_09_broker_capabilities() {
 #[test]
 fn test_10_sensitive_env_scrubbed() {
     let ctx = TestContext::new();
-    let binary = PathBuf::from(env!("CARGO_BIN_EXE_agent-sandbox"));
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_buckle"));
 
     let output = Command::new(binary)
         .args([
-            "run",
+            "up",
             "-w",
             &ctx.workspace.to_string_lossy(),
             "--",
@@ -171,7 +171,7 @@ fn test_10_sensitive_env_scrubbed() {
         .env("SECRET_TEST_TOKEN", "super_secret_val")
         .env("DATABASE_PASSWORD", "db_pass_123")
         .output()
-        .expect("Failed to run agent-sandbox binary");
+        .expect("Failed to run buckle binary");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -190,17 +190,63 @@ fn test_11_usb_iokit_accessible() {
 
 #[test]
 fn test_12_safety_guard_blocks_home_workspace() {
-    let binary = PathBuf::from(env!("CARGO_BIN_EXE_agent-sandbox"));
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_buckle"));
     let home = std::env::var("HOME").expect("HOME not set");
 
     let output = Command::new(binary)
-        .args(["run", "-w", &home, "--", "echo", "should_not_run"])
+        .args(["up", "-w", &home, "--", "echo", "should_not_run"])
         .output()
-        .expect("Failed to run agent-sandbox binary");
+        .expect("Failed to run buckle binary");
 
     assert_eq!(
         output.status.code(),
         Some(1),
         "Running in $HOME without --allow-home must be blocked by safety guard"
     );
+}
+
+#[test]
+fn test_13_buckle_up_command_execution() {
+    let ctx = TestContext::new();
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_buckle"));
+
+    let output = Command::new(binary)
+        .args([
+            "up",
+            "-w",
+            &ctx.workspace.to_string_lossy(),
+            "--",
+            "echo",
+            "fastened",
+        ])
+        .output()
+        .expect("Failed to run buckle up");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("fastened"),
+        "buckle up must execute the command successfully"
+    );
+}
+
+#[test]
+fn test_14_buckle_version_flag() {
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_buckle"));
+
+    let output_long = Command::new(&binary)
+        .arg("--version")
+        .output()
+        .expect("Failed to run buckle --version");
+    assert!(output_long.status.success());
+    let stdout_long = String::from_utf8_lossy(&output_long.stdout);
+    assert!(stdout_long.contains("buckle 0.2.0"));
+
+    let output_short = Command::new(&binary)
+        .arg("-v")
+        .output()
+        .expect("Failed to run buckle -v");
+    assert!(output_short.status.success());
+    let stdout_short = String::from_utf8_lossy(&output_short.stdout);
+    assert!(stdout_short.contains("buckle 0.2.0"));
 }

@@ -38,7 +38,7 @@ pub fn run_mcp_stdio_server() -> Result<()> {
                 "result": {
                     "protocolVersion": "2024-11-05",
                     "serverInfo": {
-                        "name": "macos-agent-sandbox-broker-rs",
+                        "name": "buckle-broker",
                         "version": env!("CARGO_PKG_VERSION")
                     },
                     "capabilities": {

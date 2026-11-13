@@ -1,4 +1,4 @@
-//! macos-agent-sandbox: High-performance kernel-level sandbox orchestrator on macOS.
+//! buckle: High-performance kernel-level sandbox orchestrator on macOS.
 //! Written in Rust with direct libSystem C FFI, in-memory SBPL compilation, and POSIX process control.
 
 use anyhow::{bail, Result};
@@ -7,17 +7,17 @@ use colored::Colorize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use macos_agent_sandbox::broker::{DeviceBroker, MacOSBroker};
-use macos_agent_sandbox::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
-use macos_agent_sandbox::doctor::run_doctor;
-use macos_agent_sandbox::mcp::run_mcp_stdio_server;
-use macos_agent_sandbox::process::{execute_sandboxed_process, RunOptions};
-use macos_agent_sandbox::profile::{render_profile, DeviceMode, NetworkMode, ProfileConfig};
+use buckle::broker::{DeviceBroker, MacOSBroker};
+use buckle::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
+use buckle::doctor::run_doctor;
+use buckle::mcp::run_mcp_stdio_server;
+use buckle::process::{execute_sandboxed_process, RunOptions};
+use buckle::profile::{render_profile, DeviceMode, NetworkMode, ProfileConfig};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "agent-sandbox",
-    about = "Hardened Kernel-Level Mandatory Access Control & Isolation for AI Agents on macOS",
+    name = "buckle",
+    about = "Buckle: Kernel-Level Seatbelt Sandbox for AI Agents on macOS",
     version,
     styles = clap_styles()
 )]
@@ -32,6 +32,9 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Buckle up: execute command in sandbox, or launch interactive shell if empty
+    Up(UpArgs),
+
     /// Execute an isolated command inside the Apple Seatbelt kernel sandbox
     Run(RunArgs),
 
@@ -95,6 +98,16 @@ pub struct CommonSandboxArgs {
 }
 
 #[derive(Args, Debug)]
+struct UpArgs {
+    #[command(flatten)]
+    common: CommonSandboxArgs,
+
+    /// Command and arguments to execute inside the sandbox (launches interactive shell if omitted)
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    command: Vec<String>,
+}
+
+#[derive(Args, Debug)]
 struct RunArgs {
     #[command(flatten)]
     common: CommonSandboxArgs,
@@ -124,7 +137,7 @@ enum BrokerSubcommands {
     UsbList,
     /// Post a safe native macOS user notification
     Notify {
-        #[arg(short, long, default_value = "Agent Sandbox")]
+        #[arg(short, long, default_value = "Buckle")]
         title: String,
         #[arg(short, long)]
         message: String,
@@ -149,15 +162,21 @@ fn main() -> Result<()> {
     };
 
     match command {
+        Commands::Up(args) => {
+            if args.command.is_empty() {
+                let code = run_shell(&args.common)?;
+                std::process::exit(code);
+            } else {
+                let code = run_command(&args.common, &args.command, false)?;
+                std::process::exit(code);
+            }
+        }
         Commands::Run(args) => {
             let code = run_command(&args.common, &args.command, false)?;
             std::process::exit(code);
         }
         Commands::Shell(args) => {
-            let shell_bin = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-            println!("{}", "[*] Spawning sandboxed interactive shell...".cyan());
-            println!("{}", "[*] Press Ctrl+D or type 'exit' to leave.".dimmed());
-            let code = run_command(&args.common, &[shell_bin, "-l".to_string()], true)?;
+            let code = run_shell(&args.common)?;
             std::process::exit(code);
         }
         Commands::Doctor => run_doctor(),
@@ -190,12 +209,12 @@ fn main() -> Result<()> {
         },
         Commands::Mcp => run_mcp_stdio_server(),
         Commands::Version => {
-            println!("agent-sandbox {}", env!("CARGO_PKG_VERSION"));
+            println!("buckle {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         Commands::Completions { shell } => {
             let mut cmd = Cli::command();
-            generate_completions(shell, &mut cmd, "agent-sandbox");
+            generate_completions(shell, &mut cmd, "buckle");
             Ok(())
         }
         Commands::Man => {
@@ -206,6 +225,13 @@ fn main() -> Result<()> {
     }
 }
 
+fn run_shell(common: &CommonSandboxArgs) -> Result<i32> {
+    let shell_bin = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+    println!("{}", "[*] Buckling up: Spawning sandboxed interactive shell...".cyan());
+    println!("{}", "[*] Press Ctrl+D or type 'exit' to leave.".dimmed());
+    run_command(common, &[shell_bin, "-l".to_string()], true)
+}
+
 fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -> Result<i32> {
     let cwd = std::env::current_dir()?;
     let workspace = common.workspace.clone().unwrap_or(cwd).canonicalize().unwrap_or_else(|_| common.workspace.clone().unwrap_or_default());
@@ -214,7 +240,7 @@ fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -
     // Safety Guard: Prohibit accidental workspace execution in $HOME without explicit flag
     if workspace == home && !common.allow_home {
         eprintln!(
-            "{} Safety Guard: Running agent-sandbox directly in $HOME ({}) is blocked by default.",
+            "{} Safety Guard: Running buckle directly in $HOME ({}) is blocked by default.",
             "[-]".red().bold(),
             workspace.display()
         );
@@ -224,7 +250,7 @@ fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -
     }
 
     if !is_shell {
-        println!("{}", "[*] Initializing Native macOS Agent Sandbox (Rust/FFI)...".cyan().bold());
+        println!("{}", "[*] Buckling up: Initializing Native macOS Kernel Sandbox (Seatbelt/FFI)...".cyan().bold());
         println!("{} Workspace: {}", "[*]".blue(), workspace.display());
         println!("{} Network Mode: {:?}", "[*]".blue(), common.net);
         println!("{} Device Mode:  {:?}", "[*]".blue(), common.devices);

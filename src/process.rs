@@ -22,7 +22,7 @@ impl TempSessionGuard {
     pub fn new() -> Result<Self> {
         let pid = unsafe { libc::getpid() };
         let rand_suffix: u32 = rand_simple();
-        let session_dir = PathBuf::from(format!("/private/tmp/agent_sandbox/session_{}_{:06x}", pid, rand_suffix));
+        let session_dir = PathBuf::from(format!("/private/tmp/buckle/session_{}_{:06x}", pid, rand_suffix));
         std::fs::create_dir_all(&session_dir)
             .with_context(|| format!("Failed to create session dir: {:?}", session_dir))?;
         Ok(Self { session_dir })
@@ -39,7 +39,7 @@ fn rand_simple() -> u32 {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
-    (now.as_nanos() & 0xFFFFFF) as u32
+    (now.as_nanos() & 0x00FF_FFFF) as u32
 }
 
 /// Locate an executable binary in PATH if it doesn't contain a path separator.
@@ -100,12 +100,14 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
 
     // 2. Prepare Environment Variables
     let mut env_map = sanitize_environment(options.pass_env, options.custom_env);
+    env_map.insert("BUCKLE_ACTIVE".to_string(), "1".to_string());
+    env_map.insert("BUCKLE_WORKSPACE".to_string(), options.workspace.to_string_lossy().to_string());
     env_map.insert("AGENT_SANDBOX_ACTIVE".to_string(), "1".to_string());
     env_map.insert("AGENT_SANDBOX_WORKSPACE".to_string(), options.workspace.to_string_lossy().to_string());
     env_map.insert("TMPDIR".to_string(), temp_guard.session_dir.to_string_lossy().to_string());
     env_map.insert("ZDOTDIR".to_string(), temp_guard.session_dir.to_string_lossy().to_string());
     env_map.insert("HISTFILE".to_string(), temp_guard.session_dir.join(".zsh_history").to_string_lossy().to_string());
-    env_map.insert("PROMPT".to_string(), "[sandbox] %~ %# ".to_string());
+    env_map.insert("PROMPT".to_string(), "[buckle] %~ %# ".to_string());
 
     let (_c_env_strings, c_env_ptrs) = to_c_env(&env_map);
     let workspace_c = CString::new(options.workspace.to_string_lossy().as_bytes())?;
@@ -146,13 +148,13 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
 
             // D. Apply in-memory Apple Seatbelt sandbox
             if let Err(e) = apply_sandbox_profile(&profile_string) {
-                eprintln!("[agent-sandbox fatal] Failed to apply kernel sandbox: {}", e);
+                eprintln!("[buckle fatal] Failed to apply kernel sandbox: {}", e);
                 libc::_exit(126);
             }
 
             // E. Change to workspace directory
             if libc::chdir(workspace_c.as_ptr()) != 0 {
-                eprintln!("[agent-sandbox fatal] chdir to workspace failed");
+                eprintln!("[buckle fatal] chdir to workspace failed");
                 libc::_exit(125);
             }
 
@@ -161,7 +163,7 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
 
             // If execve returns, an error occurred
             let err = std::io::Error::last_os_error();
-            eprintln!("[agent-sandbox fatal] execve failed for {}: {}", resolved_bin.display(), err);
+            eprintln!("[buckle fatal] execve failed for {}: {}", resolved_bin.display(), err);
             libc::_exit(127);
         }
     }

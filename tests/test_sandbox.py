@@ -130,6 +130,26 @@ class TestSandboxIsolation(unittest.TestCase):
         self.assertIsInstance(telemetry, dict)
         self.assertIn("uptime", telemetry)
 
+    def test_11_sensitive_env_scrubbed(self):
+        """Verify sensitive credentials in host environment variables are scrubbed."""
+        test_env = os.environ.copy()
+        test_env["TEST_SUPER_TOKEN"] = "leaked_secret_val"
+        test_env["AWS_SECRET_KEY"] = "super_aws_secret"
+
+        res = subprocess.run(
+            ["agent-sandbox", "run", "-w", str(self.test_workspace), "--", "sh", "-c", "echo TOKEN:[${TEST_SUPER_TOKEN}] AWS:[${AWS_SECRET_KEY}]"],
+            capture_output=True,
+            text=True,
+            env=test_env,
+        )
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("TOKEN:[] AWS:[]", res.stdout, "Sensitive environment variables must be stripped")
+
+    def test_12_usb_iokit_accessible(self):
+        """Verify that IOKit USB subsystem can be queried without kernel denial."""
+        res = self._run_in_sandbox(["/usr/sbin/ioreg", "-p", "IOUSB"])
+        self.assertEqual(res.returncode, 0, "IOKit USB querying should be permitted")
+
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSandboxIsolation)

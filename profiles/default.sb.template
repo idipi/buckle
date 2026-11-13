@@ -89,7 +89,20 @@
     (subpath "/dev/fd")
     (subpath "/dev/pts"))
 
-;; Hardware device rules (Serial / USB / Microcontrollers)
+;; Hardware device rules (Serial / USB / Microcontrollers / Flashing probes)
+(allow file-read* file-write*
+    (subpath "/dev/cu.")
+    (subpath "/dev/tty."))
+
+;; Allow IOKit user clients for USB debugging, flashing, and logic analyzers
+;; Supports: openocd, probe-rs, st-flash, dfu-util, fastboot, qdl, sigrok
+(allow iokit-open
+    (iokit-user-client-class "IOUSBDeviceUserClientV2")
+    (iokit-user-client-class "IOUSBInterfaceUserClientV2")
+    (iokit-user-client-class "IOHIDLibUserClient")
+    (iokit-user-client-class "AppleUSBHostDeviceUserClient")
+    (iokit-user-client-class "AppleUSBHostInterfaceUserClient"))
+
 {{DEVICE_RULES}}
 
 ;; HARD BLOCK on raw storage volumes and disk sectors

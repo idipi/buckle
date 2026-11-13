@@ -47,6 +47,15 @@ def cmd_run(args, unknown_args):
         port = proxy_server.start()
         print(f"[*] Egress Proxy active on 127.0.0.1:{port} ({len(domain_filter.rules)} allowed domain rules)")
 
+    custom_env = {}
+    if getattr(args, "env", None):
+        for item in args.env:
+            if "=" in item:
+                k, v = item.split("=", 1)
+                custom_env[k] = v
+
+    pass_env = getattr(args, "pass_env", [])
+
     try:
         returncode = run_sandboxed_command(
             command_args=cmd,
@@ -55,6 +64,8 @@ def cmd_run(args, unknown_args):
             device_mode=args.devices,
             extra_writable=args.writable,
             proxy_server=proxy_server,
+            env_overrides=custom_env,
+            pass_env=pass_env,
         )
         return returncode
     finally:
@@ -156,6 +167,8 @@ def main():
         "--writable", action="append", default=[],
         help="Additional directories permitted for write operations"
     )
+    run_parser.add_argument("--env", "-e", action="append", default=[], help="Set environment variable in sandbox (KEY=VAL)")
+    run_parser.add_argument("--pass-env", action="append", default=[], help="Explicitly pass through sensitive host env var")
     run_parser.add_argument("--allow-home", action="store_true", help="Permit using $HOME directly as workspace")
     run_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
 
@@ -165,6 +178,8 @@ def main():
     shell_parser.add_argument("--net", choices=["allow", "proxy", "deny"], default="allow")
     shell_parser.add_argument("--devices", choices=["serial", "allow", "deny"], default="serial")
     shell_parser.add_argument("--writable", action="append", default=[])
+    shell_parser.add_argument("--env", "-e", action="append", default=[], help="Set environment variable in sandbox (KEY=VAL)")
+    shell_parser.add_argument("--pass-env", action="append", default=[], help="Explicitly pass through sensitive host env var")
     shell_parser.add_argument("--allow-home", action="store_true", help="Permit using $HOME directly as workspace")
     shell_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
 

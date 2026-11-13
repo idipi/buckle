@@ -7,12 +7,51 @@ Constructs hardened macOS SBPL profiles tailored to current workspace and polici
 import hashlib
 import os
 from pathlib import Path
+import resource
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
+import uuid
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_PATH = BASE_DIR / "profiles" / "default.sb.template"
+
+SENSITIVE_ENV_PATTERNS = [
+    "TOKEN", "SECRET", "PASSWORD", "PASSWD",
+    "AUTH", "CREDENTIAL", "PRIVATE", "API_KEY"
+]
+
+SAFE_EXCEPTIONS = {
+    "TERM", "COLORTERM", "LANG", "LC_ALL", "LC_CTYPE",
+    "AGENT_SANDBOX_ACTIVE", "AGENT_SANDBOX_WORKSPACE",
+    "SSH_AUTH_SOCK", "EDITOR", "PAGER", "PATH", "HOME",
+    "USER", "LOGNAME", "SHELL", "PWD", "SHLVL"
+}
+
+
+def sanitize_environment(base_env, pass_vars=None, set_vars=None):
+    """
+    Sanitize host environment variables before passing into the sandbox.
+    Strips sensitive secrets, tokens, and credentials by default.
+    """
+    clean = {}
+    pass_set = set(pass_vars or [])
+
+    for k, v in base_env.items():
+        k_upper = k.upper()
+        if k in pass_set or k in SAFE_EXCEPTIONS:
+            clean[k] = v
+            continue
+        # Strip keys matching sensitive credential patterns
+        if any(pat in k_upper for pat in SENSITIVE_ENV_PATTERNS):
+            continue
+        clean[k] = v
+
+    if set_vars:
+        clean.update(set_vars)
+    return clean
 
 
 class SandboxEngine:
@@ -134,10 +173,12 @@ def run_sandboxed_command(
     extra_writable=None,
     proxy_server=None,
     env_overrides=None,
+    pass_env=None,
 ):
     """
     Execute a command under the generated macOS Seatbelt profile.
-    Automatically manages proxy configuration and environment variables.
+    Automatically manages proxy configuration, environment sanitization,
+    ephemeral tmpdir lifecycle, and process group orphan reaping.
     """
     engine = SandboxEngine(
         workspace_dir=workspace_dir,
@@ -154,17 +195,19 @@ def run_sandboxed_command(
 
     profile_path = engine.compile_profile_to_file(proxy_port=proxy_port)
 
-    # Prepare environment variables
-    env = os.environ.copy()
+    # 1. Ephemeral Sandbox Session Directory
+    session_id = f"session_{os.getpid()}_{uuid.uuid4().hex[:6]}"
+    session_tmp = Path(f"/private/tmp/agent_sandbox/{session_id}")
+    session_tmp.mkdir(parents=True, exist_ok=True)
+
+    # 2. Environment Sanitization & Preparation
+    env = sanitize_environment(os.environ, pass_vars=pass_env, set_vars=env_overrides)
     env["AGENT_SANDBOX_ACTIVE"] = "1"
     env["AGENT_SANDBOX_WORKSPACE"] = str(engine.workspace_dir)
-
-    # Redirect shell configuration & history to isolated sandbox storage in /private/tmp
-    # Prevents zsh/bash from touching ~/.zsh_history and avoids macOS /etc/zshrc fallback
-    sandbox_tmp = Path("/private/tmp/agent_sandbox")
-    sandbox_tmp.mkdir(parents=True, exist_ok=True)
-    env["ZDOTDIR"] = str(sandbox_tmp)
-    env["HISTFILE"] = str(sandbox_tmp / ".zsh_history")
+    env["TMPDIR"] = str(session_tmp)
+    env["ZDOTDIR"] = str(session_tmp)
+    env["HISTFILE"] = str(session_tmp / ".zsh_history")
+    env["PROMPT"] = "[sandbox] %~ %# "
 
     if network_mode == "proxy" and proxy_port:
         proxy_url = f"http://127.0.0.1:{proxy_port}"
@@ -176,18 +219,60 @@ def run_sandboxed_command(
         env["NO_PROXY"] = "localhost,127.0.0.1"
         env["no_proxy"] = "localhost,127.0.0.1"
 
-    if env_overrides:
-        env.update(env_overrides)
-
     cmd = ["/usr/bin/sandbox-exec", "-f", str(profile_path)] + command_args
 
+    def _preexec_limits():
+        try:
+            # Bump file descriptors to 10240 for large C++/Rust/Go builds
+            soft_f, hard_f = resource.getrlimit(resource.RLIMIT_NOFILE)
+            target_f = min(10240, hard_f) if hard_f > 0 else 10240
+            resource.setrlimit(resource.RLIMIT_NOFILE, (target_f, hard_f))
+        except (ValueError, OSError):
+            pass
+
+    returncode = 0
     try:
-        proc = subprocess.run(cmd, env=env, cwd=str(engine.workspace_dir))
-        return proc.returncode
+        is_interactive = len(command_args) > 0 and command_args[0].endswith("sh") and "-l" in command_args
+        if is_interactive:
+            # Interactive shell needs direct controlling terminal
+            proc = subprocess.run(cmd, env=env, cwd=str(engine.workspace_dir), preexec_fn=_preexec_limits)
+            returncode = proc.returncode
+        else:
+            # Batch command runs in dedicated process group to prevent orphan background daemons
+            proc = subprocess.Popen(
+                cmd,
+                env=env,
+                cwd=str(engine.workspace_dir),
+                preexec_fn=lambda: (_preexec_limits(), os.setpgrp()),
+            )
+            try:
+                returncode = proc.wait()
+            except KeyboardInterrupt:
+                try:
+                    os.killpg(proc.pid, signal.SIGINT)
+                    returncode = proc.wait(timeout=2.0)
+                except (subprocess.TimeoutExpired, OSError):
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except OSError:
+                        pass
+                    returncode = 130
+            finally:
+                # Ensure no orphaned child processes survive
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except (ProcessLookupError, OSError):
+                    pass
+
+        return returncode
     finally:
-        # Profile cleanup
+        # 3. Clean up profile and ephemeral session storage
         try:
             if profile_path.exists():
                 profile_path.unlink()
+        except OSError:
+            pass
+        try:
+            shutil.rmtree(session_tmp, ignore_errors=True)
         except OSError:
             pass

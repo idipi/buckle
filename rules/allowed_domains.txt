@@ -1,0 +1,49 @@
+# Default domain whitelist for agent egress filtering
+# Comments and empty lines are ignored.
+# Wildcards are supported, e.g., *.github.com
+
+# LLM Providers & AI APIs
+api.anthropic.com
+generativelanguage.googleapis.com
+api.openai.com
+api.groq.com
+openrouter.ai
+api.mistral.ai
+api.cohere.ai
+
+# Developer Registries & Repositories
+github.com
+api.github.com
+raw.githubusercontent.com
+objects.githubusercontent.com
+gist.githubusercontent.com
+codeload.github.com
+ghcr.io
+pkg-containers.githubusercontent.com
+
+# Python (PyPI)
+pypi.org
+files.pythonhosted.org
+pypi.python.org
+
+# Node.js (npm / yarn)
+registry.npmjs.org
+registry.yarnpkg.com
+
+# Rust (crates.io)
+crates.io
+static.crates.io
+index.crates.io
+
+# Go
+proxy.golang.org
+sum.golang.org
+
+# Homebrew
+formulae.brew.sh
+raw.githubusercontent.com
+
+# Common CDNs & Documentation
+developer.apple.com
+docs.python.org
+nodejs.org

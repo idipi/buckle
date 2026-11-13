@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""
+agent-broker: CLI & MCP server for Audited macOS System and Device Control.
+Allows agents to perform safe, controlled interactions with:
+- Serial / USB microcontrollers
+- macOS notifications
+- System telemetry & clipboard
+"""
+
+import argparse
+import json
+from pathlib import Path
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+from lib.broker import DeviceBroker, MacOSBroker
+from lib.mcp_server import serve_mcp_stdio
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Audited macOS System and Device Broker")
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    # Subcommand: serial
+    serial_parser = subparsers.add_parser("serial", help="Serial port hardware interactions")
+    serial_sub = serial_parser.add_subparsers(dest="serial_action", required=True)
+
+    serial_sub.add_parser("list", help="List active serial ports (/dev/cu.*)")
+    send_parser = serial_sub.add_parser("send", help="Send command to a serial device")
+    send_parser.add_argument("--port", "-p", required=True, help="Serial port path (e.g. /dev/cu.usbserial-1)")
+    send_parser.add_argument("--cmd", "-c", required=True, help="Command string to transmit")
+    send_parser.add_argument("--baud", "-b", type=int, default=115200, help="Baud rate (default: 115200)")
+    send_parser.add_argument("--timeout", "-t", type=float, default=2.0, help="Timeout in seconds")
+
+    # Subcommand: usb
+    usb_parser = subparsers.add_parser("usb", help="Inspect USB hardware topology")
+    usb_sub = usb_parser.add_subparsers(dest="usb_action", required=True)
+    usb_sub.add_parser("list", help="Query USB hardware tree")
+
+    # Subcommand: notify
+    notify_parser = subparsers.add_parser("notify", help="Post native macOS notification")
+    notify_parser.add_argument("--title", "-t", default="Agent Sandbox", help="Notification title")
+    notify_parser.add_argument("--message", "-m", required=True, help="Notification message")
+    notify_parser.add_argument("--subtitle", "-s", default="", help="Optional subtitle")
+
+    # Subcommand: clip
+    clip_parser = subparsers.add_parser("clip", help="Clipboard operations")
+    clip_sub = clip_parser.add_subparsers(dest="clip_action", required=True)
+    clip_sub.add_parser("get", help="Read plain text from clipboard")
+    set_parser = clip_sub.add_parser("set", help="Write plain text to clipboard")
+    set_parser.add_argument("text", help="Text to copy to clipboard")
+
+    # Subcommand: status
+    subparsers.add_parser("status", help="Get macOS battery and system telemetry")
+
+    # Subcommand: mcp
+    subparsers.add_parser("mcp", help="Run in MCP (Model Context Protocol) stdio mode for AI agents")
+
+    args = parser.parse_args()
+
+    if args.subcommand == "serial":
+        if args.serial_action == "list":
+            ports = DeviceBroker.list_serial_ports()
+            print(json.dumps(ports, indent=2))
+        elif args.serial_action == "send":
+            res = DeviceBroker.serial_communicate(
+                port_path=args.port,
+                command_str=args.cmd,
+                baudrate=args.baud,
+                timeout_sec=args.timeout,
+            )
+            print(json.dumps(res, indent=2))
+
+    elif args.subcommand == "usb":
+        if args.usb_action == "list":
+            tree = DeviceBroker.list_usb_tree()
+            print(json.dumps(tree, indent=2))
+
+    elif args.subcommand == "notify":
+        res = MacOSBroker.show_notification(title=args.title, message=args.message, subtitle=args.subtitle)
+        print(json.dumps(res, indent=2))
+
+    elif args.subcommand == "clip":
+        if args.clip_action == "get":
+            res = MacOSBroker.get_clipboard()
+            print(json.dumps(res, indent=2))
+        elif args.clip_action == "set":
+            res = MacOSBroker.set_clipboard(args.text)
+            print(json.dumps(res, indent=2))
+
+    elif args.subcommand == "status":
+        telemetry = MacOSBroker.get_system_telemetry()
+        print(json.dumps(telemetry, indent=2))
+
+    elif args.subcommand == "mcp":
+        serve_mcp_stdio()
+
+
+if __name__ == "__main__":
+    main()

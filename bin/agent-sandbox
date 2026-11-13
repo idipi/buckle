@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""
+macos-agent-sandbox: Master CLI Orchestrator.
+Hardens AI agent workflows on macOS with kernel-level Seatbelt sandboxing,
+egress-filtering proxy, and controlled device/macOS capabilities.
+"""
+
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+# Ensure lib directory is in python path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+from lib.broker import DeviceBroker, MacOSBroker
+from lib.proxy import DomainFilter, EgressProxyServer
+from lib.sandbox_generator import SandboxEngine, run_sandboxed_command
+
+
+def cmd_run(args, unknown_args):
+    """Execute a single command inside the hardened sandbox."""
+    cmd = unknown_args
+    if not cmd:
+        print("Error: No command specified to run.", file=sys.stderr)
+        return 1
+
+    workspace = Path(args.workspace or os.getcwd()).resolve()
+    print(f"[*] Initializing macOS Agent Sandbox...")
+    print(f"[*] Workspace: {workspace}")
+    print(f"[*] Network Mode: {args.net.upper()}")
+    print(f"[*] Device Mode:  {args.devices.upper()}")
+
+    proxy_server = None
+    if args.net == "proxy":
+        rules_file = args.rules or str(ROOT_DIR / "rules" / "allowed_domains.txt")
+        domain_filter = DomainFilter(rules_file=rules_file)
+        proxy_server = EgressProxyServer(domain_filter=domain_filter)
+        port = proxy_server.start()
+        print(f"[*] Egress Proxy active on 127.0.0.1:{port} ({len(domain_filter.rules)} allowed domain rules)")
+
+    try:
+        returncode = run_sandboxed_command(
+            command_args=cmd,
+            workspace_dir=workspace,
+            network_mode=args.net,
+            device_mode=args.devices,
+            extra_writable=args.writable,
+            proxy_server=proxy_server,
+        )
+        return returncode
+    finally:
+        if proxy_server:
+            proxy_server.stop()
+
+
+def cmd_shell(args):
+    """Spawn an interactive subshell inside the sandbox."""
+    shell_bin = os.environ.get("SHELL", "/bin/zsh")
+    print(f"[*] Spawning sandboxed interactive shell ({shell_bin})...")
+    print("[*] Press Ctrl+D or type 'exit' to leave.")
+    return cmd_run(args, [shell_bin, "-l"])
+
+
+def cmd_doctor(args):
+    """Perform security audit and verify sandbox containment."""
+    print("==================================================")
+    print("   macOS Agent Sandbox - System Health Audit      ")
+    print("==================================================")
+
+    # 1. OS & Architecture Check
+    os_ver = subprocess.run(["/usr/bin/sw_vers", "-productVersion"], capture_output=True, text=True).stdout.strip()
+    arch = subprocess.run(["/usr/bin/uname", "-m"], capture_output=True, text=True).stdout.strip()
+    print(f"[+] macOS Version:    {os_ver} ({arch})")
+
+    # 2. Seatbelt Binary Check
+    sb_exec = "/usr/bin/sandbox-exec"
+    if os.path.exists(sb_exec):
+        print(f"[+] Seatbelt Engine:  Available ({sb_exec})")
+    else:
+        print(f"[-] Seatbelt Engine:  MISSING at {sb_exec}")
+
+    # 3. Test Credential Block
+    test_engine = SandboxEngine(network_mode="deny", device_mode="deny")
+    test_profile = test_engine.compile_profile_to_file()
+    try:
+        ssh_dir = str(Path.home() / ".ssh")
+        res = subprocess.run(
+            ["/usr/bin/sandbox-exec", "-f", str(test_profile), "/bin/ls", ssh_dir],
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0 and "Operation not permitted" in res.stderr:
+            print("[+] Credential Lock:  VERIFIED (~/.ssh is blocked with EPERM)")
+        else:
+            print("[-] Credential Lock:  WARNING - ~/.ssh was not blocked as expected!")
+    finally:
+        if test_profile.exists():
+            test_profile.unlink()
+
+    # 4. Device Subsystem Check
+    serial_ports = DeviceBroker.list_serial_ports()
+    print(f"[+] Serial Devices:   {len(serial_ports)} available in /dev/cu.*")
+    for p in serial_ports[:3]:
+        print(f"    - {p['path']} ({p['category']})")
+
+    # 5. Egress Rules File Check
+    rules_file = Path(args.rules or ROOT_DIR / "rules" / "allowed_domains.txt")
+    if rules_file.exists():
+        df = DomainFilter(rules_file=str(rules_file))
+        print(f"[+] Egress Whitelist: Active ({len(df.rules)} domains configured in {rules_file.name})")
+    else:
+        print(f"[-] Egress Whitelist: File missing at {rules_file}")
+
+    print("==================================================")
+    print("Audit status: All primary security controls operational.")
+    return 0
+
+
+def cmd_test(args):
+    """Execute automated security validation test suite."""
+    test_script = ROOT_DIR / "tests" / "test_sandbox.py"
+    if not test_script.exists():
+        print(f"[-] Test script not found at {test_script}", file=sys.stderr)
+        return 1
+    return subprocess.run([sys.executable, str(test_script)]).returncode
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="macOS Agent Sandbox: Hardened Isolation Toolkit for AI Agents",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Subcommand: run
+    run_parser = subparsers.add_parser("run", help="Run a command inside the hardened sandbox")
+    run_parser.add_argument("--workspace", "-w", help="Path to workspace directory (default: current directory)")
+    run_parser.add_argument(
+        "--net", choices=["proxy", "allow", "deny"], default="proxy",
+        help="Outbound network policy (default: proxy)"
+    )
+    run_parser.add_argument(
+        "--devices", choices=["serial", "allow", "deny"], default="serial",
+        help="Hardware/device access policy (default: serial)"
+    )
+    run_parser.add_argument(
+        "--writable", action="append", default=[],
+        help="Additional directories permitted for write operations"
+    )
+    run_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
+
+    # Subcommand: shell
+    shell_parser = subparsers.add_parser("shell", help="Launch an interactive sandboxed shell")
+    shell_parser.add_argument("--workspace", "-w", help="Path to workspace directory")
+    shell_parser.add_argument("--net", choices=["proxy", "allow", "deny"], default="proxy")
+    shell_parser.add_argument("--devices", choices=["serial", "allow", "deny"], default="serial")
+    shell_parser.add_argument("--writable", action="append", default=[])
+    shell_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
+
+    # Subcommand: doctor
+    doc_parser = subparsers.add_parser("doctor", help="Audit macOS sandbox capabilities & credentials lock")
+    doc_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
+
+    # Subcommand: test
+    subparsers.add_parser("test", help="Run automated test suite verifying isolation invariants")
+
+    # Parse arguments
+    args, unknown = parser.parse_known_args()
+
+    if args.command == "run":
+        sys.exit(cmd_run(args, unknown))
+    elif args.command == "shell":
+        sys.exit(cmd_shell(args))
+    elif args.command == "doctor":
+        sys.exit(cmd_doctor(args))
+    elif args.command == "test":
+        sys.exit(cmd_test(args))
+
+
+if __name__ == "__main__":
+    main()

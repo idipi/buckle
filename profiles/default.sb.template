@@ -1,0 +1,125 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Apple Seatbelt Sandbox Profile for AI Agent Execution
+;; Target: macOS Sequoia / Sonoma (Darwin)
+;; Purpose: Enforce strict boundary around untrusted code & autonomous agents
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(version 1)
+(import "bsd.sb")
+
+;; Global default: Deny all operations unless explicitly permitted
+(deny default)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 1. Process Primitives & Signals
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(allow process-fork)
+(allow process-exec)
+(allow signal (target self))
+(allow sysctl-read)
+(allow file-read-metadata)
+
+;; Darwin system services & IPC lookups required by libSystem, dyld, libc++
+(allow mach-lookup)
+(allow ipc-posix-shm)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2. Read-Only System Infrastructure
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(allow file-read*
+    (subpath "/System")
+    (subpath "/usr")
+    (subpath "/bin")
+    (subpath "/sbin")
+    (subpath "/Library")
+    (subpath "/opt/homebrew")
+    (subpath "/private/etc")
+    (subpath "/private/var/db/timezone")
+    (subpath "/private/var/db/DarwinDirectory")
+    (subpath "/Library/Developer/CommandLineTools")
+    (subpath "/Applications/Xcode.app/Contents/Developer"))
+
+;; Allow read access to user-installed toolchains if they exist
+{{USER_TOOLCHAIN_READ_RULES}}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 3. Workspace & Temporary Storage (Read/Write)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(allow file-read* file-write*
+    ;; Primary active workspace directory
+    (subpath "{{WORKSPACE_DIR}}")
+    ;; Standard temporary directories required by compilers, interpreters, tools
+    (subpath "/private/tmp")
+    (subpath "/private/var/folders")
+    {{EXTRA_WRITABLE_PATHS}})
+
+;; Prevent root modifications in user home directory (anti-dropper protection)
+(deny file-write* (literal "{{HOME_DIR}}"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 4. Device Access Layer
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Allow standard pseudo-devices
+(allow file-read* file-write*
+    (literal "/dev/null")
+    (literal "/dev/zero")
+    (literal "/dev/random")
+    (literal "/dev/urandom")
+    (literal "/dev/tty")
+    (literal "/dev/ptmx")
+    (literal "/dev/autofs_nowait")
+    (literal "/dev/dtracehelper")
+    (subpath "/dev/fd")
+    (subpath "/dev/pts"))
+
+;; Hardware device rules (Serial / USB / Microcontrollers)
+{{DEVICE_RULES}}
+
+;; HARD BLOCK on raw storage volumes and disk sectors
+(deny file-read* file-write*
+    (subpath "/dev/disk")
+    (subpath "/dev/rdisk"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 5. Network Access Rules
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+{{NETWORK_RULES}}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 6. Strict Credential & Secret Protection (OVERRIDE ALL PRECEDING ALLOWS)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deny file-read* file-write*
+    ;; SSH keys and known hosts
+    (subpath "{{HOME_DIR}}/.ssh")
+
+    ;; Cloud infrastructure credentials
+    (subpath "{{HOME_DIR}}/.aws")
+    (subpath "{{HOME_DIR}}/.azure")
+    (subpath "{{HOME_DIR}}/.config/gcloud")
+    (subpath "{{HOME_DIR}}/.oci")
+
+    ;; Cryptographic keys & keychains
+    (subpath "{{HOME_DIR}}/.gnupg")
+    (subpath "{{HOME_DIR}}/Library/Keychains")
+
+    ;; Developer CLI tokens & auth configs
+    (subpath "{{HOME_DIR}}/.netrc")
+    (subpath "{{HOME_DIR}}/.npmrc")
+    (subpath "{{HOME_DIR}}/.pypirc")
+    (subpath "{{HOME_DIR}}/.git-credentials")
+    (subpath "{{HOME_DIR}}/.config/gh")
+    (subpath "{{HOME_DIR}}/.gemini")
+
+    ;; Browser profiles, cookies, and local session stores
+    (subpath "{{HOME_DIR}}/Library/Application Support/Google")
+    (subpath "{{HOME_DIR}}/Library/Application Support/Arc")
+    (subpath "{{HOME_DIR}}/Library/Application Support/BraveSoftware")
+    (subpath "{{HOME_DIR}}/Library/Application Support/Firefox")
+    (subpath "{{HOME_DIR}}/Library/Safari")
+
+    ;; Personal communications
+    (subpath "{{HOME_DIR}}/Library/Messages")
+    (subpath "{{HOME_DIR}}/Library/Mail")
+
+    ;; Shell history files containing typed credentials
+    (regex #"/\..*history$"))

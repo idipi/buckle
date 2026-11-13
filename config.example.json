@@ -1,0 +1,22 @@
+{
+  "network": {
+    "default_mode": "proxy",
+    "proxy_port": 18080,
+    "rules_file": "rules/allowed_domains.txt"
+  },
+  "devices": {
+    "default_mode": "serial",
+    "allow_serial": true,
+    "block_raw_disks": true
+  },
+  "filesystem": {
+    "deny_sensitive_credentials": true,
+    "extra_writable_paths": []
+  },
+  "broker": {
+    "enable_notifications": true,
+    "enable_clipboard": true,
+    "enable_serial": true,
+    "serial_default_baud": 115200
+  }
+}

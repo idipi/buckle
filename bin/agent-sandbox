@@ -28,6 +28,12 @@ def cmd_run(args, unknown_args):
         return 1
 
     workspace = Path(args.workspace or os.getcwd()).resolve()
+    if workspace == Path.home().resolve() and not getattr(args, "allow_home", False):
+        print(f"[-] Safety Guard: Running agent-sandbox directly in $HOME ({workspace}) is blocked by default.", file=sys.stderr)
+        print("[-] An agent should operate inside a dedicated project directory (e.g. ~/projects/my-repo).", file=sys.stderr)
+        print("[-] Please 'cd' into your project, or pass --allow-home if you explicitly want to allow writing in $HOME.", file=sys.stderr)
+        return 1
+
     print(f"[*] Initializing macOS Agent Sandbox...")
     print(f"[*] Workspace: {workspace}")
     print(f"[*] Network Mode: {args.net.upper()}")
@@ -150,6 +156,7 @@ def main():
         "--writable", action="append", default=[],
         help="Additional directories permitted for write operations"
     )
+    run_parser.add_argument("--allow-home", action="store_true", help="Permit using $HOME directly as workspace")
     run_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
 
     # Subcommand: shell
@@ -158,6 +165,7 @@ def main():
     shell_parser.add_argument("--net", choices=["proxy", "allow", "deny"], default="proxy")
     shell_parser.add_argument("--devices", choices=["serial", "allow", "deny"], default="serial")
     shell_parser.add_argument("--writable", action="append", default=[])
+    shell_parser.add_argument("--allow-home", action="store_true", help="Permit using $HOME directly as workspace")
     shell_parser.add_argument("--rules", help="Path to custom allowed_domains.txt file")
 
     # Subcommand: doctor

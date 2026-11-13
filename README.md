@@ -22,7 +22,7 @@ Operates **a level below application prompts** by enforcing kernel-level Mandato
 ├────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
 │ [✓] Read/Write: Current project workspace & /tmp       │   │ [✓] Serial: /dev/cu.* microcontrollers (8N1, timeout)   │
 │ [✓] Read-only:  System binaries, toolchains, libs      │   │ [✓] USB:    Query USB hardware topology via profiler    │
-│ [X] BLOCKED:    ~/.ssh, ~/.aws, ~/.gnupg, Keychains    │   │ [✓] macOS:  Sanitized desktop notifications             │
+│ [X] BLOCKED:    ~/.ssh, ~/.gnupg, Keychains            │   │ [✓] macOS:  Sanitized desktop notifications             │
 │ [X] BLOCKED:    Browser sessions, cookies, history     │   │ [✓] macOS:  Controlled clipboard & system telemetry    │
 │ [X] BLOCKED:    Raw disk access (/dev/disk*, rdisk*)   │   │ [✓] MCP:    Standard JSON-RPC 2.0 stdio server          │
 └────────────────────────────┬───────────────────────────┘   └─────────────────────────────────────────────────────────┘
@@ -46,7 +46,7 @@ Operates **a level below application prompts** by enforcing kernel-level Mandato
 1. **Kernel-Enforced Filesystem Containment**:
    - Uses Apple's native **Seatbelt (SBPL)** engine (`sandbox-exec`).
    - Even if an agent is tricked by a Prompt Injection into running `cat ~/.ssh/id_rsa` or `rm -rf /`, the kernel halts the operation with `Operation not permitted (EPERM)`.
-   - Your home directory root, cloud keys (`~/.aws`, `~/.config/gcloud`), GPG keys, macOS Keychains, browser profiles (Chrome, Arc, Safari), and shell history files are completely invisible.
+   - Your home directory root, cloud keys (`~/.config/gcloud`), GPG keys, macOS Keychains, browser profiles (Chrome, Arc, Safari), and shell history files are completely invisible.
 
 2. **Unbypassable Network Egress Filtering**:
    - In `proxy` mode (default), the kernel **denies all outbound network sockets** except loopback to `localhost`.

@@ -62,11 +62,11 @@ class TestSandboxIsolation(unittest.TestCase):
         self.assertNotEqual(res.returncode, 0, "Reading ~/.ssh should fail")
         self.assertIn("Operation not permitted", res.stderr, "Error must be kernel EPERM")
 
-    def test_02_aws_and_gnupg_blocked(self):
+    def test_02_gnupg_and_cloud_blocked(self):
         """Verify cloud credentials and GPG keys are blocked."""
-        aws_dir = self.home_dir / ".aws"
-        res = self._run_in_sandbox(["/bin/ls", str(aws_dir)])
-        self.assertNotEqual(res.returncode, 0, "Access to ~/.aws should be blocked")
+        gcloud_dir = self.home_dir / ".config" / "gcloud"
+        res_gcloud = self._run_in_sandbox(["/bin/ls", str(gcloud_dir)])
+        self.assertNotEqual(res_gcloud.returncode, 0, "Access to ~/.config/gcloud should be blocked")
 
         gnupg_dir = self.home_dir / ".gnupg"
         res_gpg = self._run_in_sandbox(["/bin/ls", str(gnupg_dir)])

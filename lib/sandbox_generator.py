@@ -159,6 +159,13 @@ def run_sandboxed_command(
     env["AGENT_SANDBOX_ACTIVE"] = "1"
     env["AGENT_SANDBOX_WORKSPACE"] = str(engine.workspace_dir)
 
+    # Redirect shell configuration & history to isolated sandbox storage in /private/tmp
+    # Prevents zsh/bash from touching ~/.zsh_history and avoids macOS /etc/zshrc fallback
+    sandbox_tmp = Path("/private/tmp/agent_sandbox")
+    sandbox_tmp.mkdir(parents=True, exist_ok=True)
+    env["ZDOTDIR"] = str(sandbox_tmp)
+    env["HISTFILE"] = str(sandbox_tmp / ".zsh_history")
+
     if network_mode == "proxy" and proxy_port:
         proxy_url = f"http://127.0.0.1:{proxy_port}"
         env["HTTP_PROXY"] = proxy_url

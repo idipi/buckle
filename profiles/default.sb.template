@@ -125,5 +125,5 @@
     (subpath "{{HOME_DIR}}/Library/Messages")
     (subpath "{{HOME_DIR}}/Library/Mail")
 
-    ;; Shell history files containing typed credentials
-    (regex #"/\..*history$"))
+    ;; Shell history files containing typed credentials in user home directory
+    (regex #"^/Users/[^/]+/\..*history$"))

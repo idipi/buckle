@@ -12,7 +12,7 @@ const SENSITIVE_PATTERNS: &[&str] = &[
 const SAFE_EXCEPTIONS: &[&str] = &[
     "TERM", "COLORTERM", "LANG", "LC_ALL", "LC_CTYPE",
     "AGENT_SANDBOX_ACTIVE", "AGENT_SANDBOX_WORKSPACE",
-    "SSH_AUTH_SOCK", "EDITOR", "PAGER", "PATH", "HOME",
+    "EDITOR", "PAGER", "PATH", "HOME",
     "USER", "LOGNAME", "SHELL", "PWD", "SHLVL"
 ];
 

@@ -5,17 +5,12 @@ use std::path::{Path, PathBuf};
 
 const MASTER_TEMPLATE: &str = include_str!("../profiles/default.sb.template");
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NetworkMode {
+    #[default]
     Allow,
     Proxy,
     Deny,
-}
-
-impl Default for NetworkMode {
-    fn default() -> Self {
-        NetworkMode::Allow
-    }
 }
 
 impl std::str::FromStr for NetworkMode {
@@ -30,17 +25,12 @@ impl std::str::FromStr for NetworkMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DeviceMode {
+    #[default]
     Serial,
     Allow,
     Deny,
-}
-
-impl Default for DeviceMode {
-    fn default() -> Self {
-        DeviceMode::Serial
-    }
 }
 
 impl std::str::FromStr for DeviceMode {

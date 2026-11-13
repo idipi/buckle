@@ -1,0 +1,46 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH agent-sandbox 1  "agent-sandbox 0.2.0" 
+.SH NAME
+agent\-sandbox \- Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
+.SH SYNOPSIS
+\fBagent\-sandbox\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIsubcommands\fR>
+.SH DESCRIPTION
+Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.SH SUBCOMMANDS
+.TP
+agent\-sandbox\-run(1)
+Execute an isolated command inside the Apple Seatbelt kernel sandbox
+.TP
+agent\-sandbox\-shell(1)
+Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage
+.TP
+agent\-sandbox\-doctor(1)
+Audit system security controls and in\-memory kernel sandbox
+.TP
+agent\-sandbox\-test(1)
+Execute automated security isolation regression test suite (12 invariants)
+.TP
+agent\-sandbox\-broker(1)
+Hardware and macOS capability broker interface
+.TP
+agent\-sandbox\-mcp(1)
+Run Model Context Protocol (MCP) stdio server
+.TP
+agent\-sandbox\-completions(1)
+Generate shell autocompletion script (bash, zsh, fish, powershell)
+.TP
+agent\-sandbox\-man(1)
+Render Unix roff man page documentation to stdout
+.TP
+agent\-sandbox\-help(1)
+Print this message or the help of the given subcommand(s)
+.SH VERSION
+v0.2.0

@@ -1,8 +1,8 @@
 # macos-agent-sandbox
 
-A high-performance, kernel-level security toolkit for running AI coding agents, autonomous LLM workflows, and untrusted code on **macOS (Apple Silicon & Intel)**.
+A high-performance, kernel-level security sandbox and hardware capability broker for running AI coding agents, autonomous LLM workflows, and untrusted scripts on **macOS (Apple Silicon & Intel)**.
 
-Built in **Rust** with direct FFI bindings to Apple's `libSystem.B.dylib` (`sandbox_init`). Operates **completely in-memory with zero temporary profile files on disk**, sub-millisecond startup overhead, and zero external runtime dependencies.
+Built in **100% pure native Rust** with direct FFI bindings to Apple's `libSystem.B.dylib` (`sandbox_init`). Operates **completely in-memory with zero temporary profile files on disk**, sub-millisecond startup overhead, and zero external runtime dependencies.
 
 ---
 
@@ -20,13 +20,13 @@ Built in **Rust** with direct FFI bindings to Apple's `libSystem.B.dylib` (`sand
 │     1. Apple Seatbelt (In-Memory Kernel Sandbox)       │   │        2. Audited Capability Broker (CLI & MCP)         │
 │   Native Rust FFI -> libSystem sandbox_init() in RAM   │   │     Safely bridges to macOS APIs & Hardware Devices     │
 ├────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ [✓] Read/Write: Current project workspace & tmpfs      │   │ [✓] Serial: /dev/cu.* microcontrollers (8N1, timeout)   │
+│ [✓] Read/Write: Current project workspace & tmpfs      │   │ [✓] Serial: /dev/cu.* microcontrollers (UART)           │
 │ [✓] Read-only:  System binaries, toolchains, libs      │   │ [✓] USB:    Query USB hardware topology via profiler    │
 │ [✓] Flashing:   IOKit USB access (openocd, qdl, dfu)   │   │ [✓] Flashing: Direct libusb & JTAG / EDL endpoint access│
 │ [X] BLOCKED:    ~/.ssh, ~/.gnupg, Keychains (write)    │   │ [✓] macOS:  Sanitized desktop notifications             │
 │ [X] BLOCKED:    Browser sessions, cookies, history     │   │ [✓] macOS:  Controlled clipboard & system telemetry    │
 │ [X] BLOCKED:    Raw disk access (/dev/disk*, rdisk*)   │   │ [✓] MCP:    High-speed JSON-RPC 2.0 stdio server        │
-│ [X] SCRUBBED:   All host secrets from environment vars │   │ [✓] Clean:  Automatic orphan process tree reaper       │
+│ [X] SCRUBBED:   Host secrets scrubbed from environment │   │ [✓] Clean:  Automatic orphan process tree reaper       │
 └────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────┘
 ```
 
@@ -35,48 +35,65 @@ Built in **Rust** with direct FFI bindings to Apple's `libSystem.B.dylib` (`sand
 ## Key Features
 
 1. **Kernel-Enforced Filesystem Containment**:
-   - Uses Apple's native **Seatbelt (SBPL)** engine (`sandbox-exec`).
-   - Even if an agent is tricked by a Prompt Injection into running `cat ~/.ssh/id_rsa` or `rm -rf /`, the kernel halts the operation with `Operation not permitted (EPERM)`.
-   - Your home directory root, cloud keys (`~/.config/gcloud`), GPG keys, macOS Keychains, browser profiles (Chrome, Arc, Safari), and shell history files are completely invisible.
+   - Uses Apple's native **Seatbelt (SBPL)** engine directly via C FFI (`sandbox_init`).
+   - Even if an agent is tricked by prompt injection into running `cat ~/.ssh/id_rsa` or `rm -rf /`, the kernel halts the operation with `Operation not permitted (EPERM)`.
+   - Your home directory root, cloud keys (`~/.config/gcloud`), GPG keys, macOS Keychains, browser profiles (Chrome, Arc, Safari), and shell history files are completely protected.
 
-2. **Unbypassable Network Egress Filtering**:
-   - In `proxy` mode (default), the kernel **denies all outbound network sockets** except loopback to `localhost`.
-   - Outbound connections must traverse the built-in filtering proxy, which inspects HTTP/HTTPS `CONNECT` handshakes against [allowed_domains.txt](file:///Users/ench/projects/macos-agent-sandbox/rules/allowed_domains.txt).
-   - Prevents exfiltration of project tokens, environment variables, or private source code.
+2. **Environment Variable Secret Scrubbing**:
+   - Automatically sanitizes the environment before spawning untrusted processes.
+   - Strips any variables matching sensitive patterns (`*TOKEN*`, `*KEY*`, `*SECRET*`, `*PASSWORD*`, `*AUTH*`, `*CREDENTIAL*`, `*PRIVATE*`) unless explicitly allowed via `--pass-env`.
 
-3. **Controlled Hardware & Device Access**:
+3. **Controlled Hardware & Microcontroller Access**:
    - Supports serial adapters and microcontrollers (`/dev/cu.*`, `/dev/tty.*`) for embedded and hardware projects.
-   - Denies raw storage block devices (`/dev/disk*`, `/dev/rdisk*`) to eliminate catastrophic disk format risks.
+   - Enables `IOKit` USB device client classes (`IOUSBDeviceUserClientV2`) for firmware flashers (`probe-rs`, `openocd`, `dfu-util`, `qdl`, `st-flash`).
+   - Denies raw storage block devices (`/dev/disk*`, `/dev/rdisk*`) to eliminate disk tampering risks.
 
 4. **Audited macOS System Integration (Broker & MCP)**:
    - Exposes safe system calls (notifications, clipboard, battery status) without granting unrestricted Accessibility or AppleScript execution permissions.
-   - Includes a built-in **Model Context Protocol (MCP)** server for plug-and-play integration with modern AI assistants.
+   - High-performance native **Model Context Protocol (MCP)** server over stdio for plug-and-play integration with Antigravity, Claude, and Cursor.
 
-5. **Zero External Dependencies**:
-   - Built entirely on macOS system binaries and Python 3 standard library.
-   - No Docker daemon, no VM spin-up delay, no performance loss.
+5. **Process Group & Ephemeral Session Management**:
+   - Allocates dedicated ephemeral session storage under `/private/tmp/agent_sandbox/session_*` with RAII automatic cleanup on exit.
+   - Tracks child process groups (`setpgid`) and reaps orphaned background daemons on exit.
+
+---
+
+## Installation
+
+### Via Homebrew Tap
+```bash
+brew tap idipi/tap
+brew install agent-sandbox
+```
+
+### Build from Source
+```bash
+git clone https://github.com/idipi/macos-agent-sandbox.git
+cd macos-agent-sandbox
+cargo build --release
+```
+Compiled binaries will be in `target/release/agent-sandbox` and `target/release/agent-broker`.
 
 ---
 
 ## Quick Start
 
 ### 1. Run System Health Audit
-Verify that your macOS version, Seatbelt compiler, credential lock, and rules are active:
+Verify that your macOS version, Seatbelt FFI engine, credential lock, and serial devices are active:
 
 ```bash
-./bin/agent-sandbox doctor
+agent-sandbox doctor
 ```
 
 Output:
 ```
 ==================================================
-   macOS Agent Sandbox - System Health Audit      
+   macOS Agent Sandbox - System Health Audit (Rust)
 ==================================================
 [+] macOS Version:    15.8.3 (arm64)
-[+] Seatbelt Engine:  Available (/usr/bin/sandbox-exec)
-[+] Credential Lock:  VERIFIED (~/.ssh is blocked with EPERM)
+[+] Kernel Sandbox:   Direct FFI libSystem.B.dylib (sandbox_init)
+[+] Credential Lock:  VERIFIED (~/.ssh blocked in-memory by kernel)
 [+] Serial Devices:   3 available in /dev/cu.*
-[+] Egress Whitelist: Active (29 domains configured in allowed_domains.txt)
 ==================================================
 Audit status: All primary security controls operational.
 ```
@@ -85,31 +102,30 @@ Audit status: All primary security controls operational.
 Execute any command within the current workspace:
 
 ```bash
-# Sandboxed Python execution
-./bin/agent-sandbox run python3 -c "print('Running inside sandbox!')"
+# Sandboxed compilation
+agent-sandbox run cargo build
 
-# Sandboxed Git command
-./bin/agent-sandbox run git status
+# Sandboxed Git status
+agent-sandbox run git status
 ```
 
 ### 3. Launch an Interactive Sandboxed Shell
 Spawn an isolated subshell for prolonged development sessions:
 
 ```bash
-./bin/agent-sandbox shell
+agent-sandbox shell
 ```
 
 Inside this shell:
 * Try `ls ~/.ssh` $\rightarrow$ `Operation not permitted`
-* Try `curl https://httpbin.org` $\rightarrow$ `HTTP 403 Forbidden`
-* Try `curl https://api.github.com` $\rightarrow$ `HTTP 200 OK`
-* Write files in your workspace $\rightarrow$ Allowed
+* Try `touch ~/.test` $\rightarrow$ `Operation not permitted`
+* Try `touch file.txt` (in workspace) $\rightarrow$ `Allowed`
 
 ### 4. Run the Automated Security Test Suite
-Verify that all kernel isolation invariants pass (via CLI or cargo):
+Verify that all 12 kernel isolation invariants pass:
 
 ```bash
-./bin/agent-sandbox test
+agent-sandbox test
 # or: cargo test --test integration_tests
 ```
 
@@ -117,44 +133,58 @@ Verify that all kernel isolation invariants pass (via CLI or cargo):
 
 ## Command Reference
 
-### `agent-sandbox run`
-```bash
-./bin/agent-sandbox run [OPTIONS] <COMMAND...>
+### `agent-sandbox`
 
-Options:
-  -w, --workspace PATH     Target workspace directory (default: current directory)
-  --net {proxy,allow,deny} Outbound network policy (default: proxy)
-  --devices {serial,allow,deny}
-                           Hardware device access policy (default: serial)
-  --writable PATH          Additional directory to permit write operations
-  --rules PATH             Path to custom domain whitelist file
+```bash
+agent-sandbox [COMMAND]
+
+Commands:
+  run          Execute an isolated command inside the Apple Seatbelt kernel sandbox
+  shell        Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage
+  doctor       Audit system security controls and in-memory kernel sandbox
+  test         Execute automated security isolation regression test suite (12 invariants)
+  broker       Hardware and macOS capability broker interface
+  mcp          Run Model Context Protocol (MCP) stdio server
+  completions  Generate shell autocompletion script (bash, zsh, fish, powershell)
+  man          Render Unix roff man page documentation to stdout
 ```
 
+#### `agent-sandbox run` Options
+* `-w, --workspace <PATH>`: Target workspace directory (default: current directory). Guarded against running directly in `$HOME`.
+* `-n, --net <allow|proxy|deny>`: Outbound network policy (default: `allow`).
+* `-d, --devices <serial|allow|deny>`: Hardware device access policy (default: `serial`).
+* `--writable <PATH>`: Additional directory permitted for write operations.
+* `-e, --env <KEY=VAL>`: Set custom environment variables.
+* `--pass-env <NAME>`: Explicitly pass through sensitive host environment variables.
+* `--allow-home`: Explicitly override safety guard and permit workspace in `$HOME`.
+
+---
+
 ### `agent-broker` (Hardware & macOS Interface)
-The capability broker allows agents to interact with devices and macOS without granting root:
 
 ```bash
-# Enumerate serial devices
-./bin/agent-broker serial list
-
-# Send command to microcontroller (ESP32, Arduino, Raspberry Pi Pico)
-./bin/agent-broker serial send --port /dev/cu.usbmodem1101 --cmd "STATUS" --baud 115200
+# Enumerate serial devices (/dev/cu.*)
+agent-broker serial list
 
 # Inspect connected USB devices
-./bin/agent-broker usb list
+agent-broker usb list
 
 # Display safe native notification
-./bin/agent-broker notify --title "Build Complete" --message "All tests passed."
+agent-broker notify --title "Build Complete" --message "All tests passed."
 
 # Read or write clipboard safely
-./bin/agent-broker clip get
-./bin/agent-broker clip set "Cleaned output"
+agent-broker clip get
+agent-broker clip set "Cleaned output"
 
 # Query system telemetry
-./bin/agent-broker status
+agent-broker status
 
 # Start as Model Context Protocol (MCP) server over stdio
-./bin/agent-broker mcp
+agent-broker mcp
+
+# Shell completions and man pages
+agent-broker completions zsh
+agent-broker man
 ```
 
 ---
@@ -162,7 +192,7 @@ The capability broker allows agents to interact with devices and macOS without g
 ## AI Agent Integration Guide
 
 ### Integration with Antigravity / Claude / Cursor via MCP
-Add the broker to your agent's MCP configuration (`mcp_config.json` or `claude_desktop_config.json`):
+Add the broker to your agent's MCP configuration (`mcp_config.json`):
 
 ```json
 {
@@ -175,28 +205,30 @@ Add the broker to your agent's MCP configuration (`mcp_config.json` or `claude_d
 }
 ```
 
-This gives the agent structured tools (`device_list_serial`, `device_serial_communicate`, `macos_notification`, etc.) while ensuring all bash executions run wrapped inside `agent-sandbox run`.
+This gives the agent structured tools (`device_list_serial`, `device_list_usb`, `macos_notification`, `macos_clipboard_read`, `macos_clipboard_write`, `macos_system_telemetry`) while ensuring all terminal commands run wrapped inside `agent-sandbox run`.
 
 ### Shell Alias Wrapper for Everyday Use
 Add to your `~/.zshrc`:
 
 ```bash
-# Wrap agent CLI in the sandbox
-alias safe-agy="/Users/ench/projects/macos-agent-sandbox/bin/agent-sandbox run agy"
-alias safe-shell="/Users/ench/projects/macos-agent-sandbox/bin/agent-sandbox shell"
+alias safe="agent-sandbox run"
+alias safe-shell="agent-sandbox shell"
 ```
 
 ---
 
 ## Directory Structure
 
-* [bin/agent-sandbox](file:///Users/ench/projects/macos-agent-sandbox/bin/agent-sandbox) - Primary CLI runner and environment supervisor.
-* [bin/agent-broker](file:///Users/ench/projects/macos-agent-sandbox/bin/agent-broker) - Audited device and macOS capability gateway / MCP server.
-* [lib/sandbox_generator.py](file:///Users/ench/projects/macos-agent-sandbox/lib/sandbox_generator.py) - Dynamic Apple Seatbelt profile compiler and process manager.
-* [lib/proxy.py](file:///Users/ench/projects/macos-agent-sandbox/lib/proxy.py) - Zero-dependency domain-whitelisting HTTP/HTTPS CONNECT proxy.
-* [lib/broker.py](file:///Users/ench/projects/macos-agent-sandbox/lib/broker.py) - Sanitized implementations for serial ports, USB tree, notifications, and clipboard.
-* [lib/mcp_server.py](file:///Users/ench/projects/macos-agent-sandbox/lib/mcp_server.py) - Standard JSON-RPC 2.0 stdio engine for Model Context Protocol.
-* [profiles/default.sb.template](file:///Users/ench/projects/macos-agent-sandbox/profiles/default.sb.template) - Master Apple Seatbelt profile template (Scheme / SBPL).
-* [rules/allowed_domains.txt](file:///Users/ench/projects/macos-agent-sandbox/rules/allowed_domains.txt) - Default egress whitelist for LLM providers and developer registries.
-* [rules/pf_rules.conf](file:///Users/ench/projects/macos-agent-sandbox/rules/pf_rules.conf) - Template for macOS native packet filter (`pfctl`).
-* [tests/test_sandbox.py](file:///Users/ench/projects/macos-agent-sandbox/tests/test_sandbox.py) - Automated security regression test suite.
+* [src/main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/main.rs) - CLI entry point with styled clap interface.
+* [src/bin/broker_main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/bin/broker_main.rs) - Standalone `agent-broker` binary CLI.
+* [src/ffi.rs](file:///Users/ench/projects/macos-agent-sandbox/src/ffi.rs) - Direct C FFI bindings to Apple Seatbelt (`sandbox_init`).
+* [src/process.rs](file:///Users/ench/projects/macos-agent-sandbox/src/process.rs) - Process manager (`fork`, `execve`, TTY `tcsetpgrp`, `rlimit`, session cleanup).
+* [src/profile.rs](file:///Users/ench/projects/macos-agent-sandbox/src/profile.rs) - In-memory SBPL profile compiler and template engine.
+* [src/env.rs](file:///Users/ench/projects/macos-agent-sandbox/src/env.rs) - Environment variable secret sanitizer.
+* [src/broker.rs](file:///Users/ench/projects/macos-agent-sandbox/src/broker.rs) - Audited hardware and macOS capability implementations.
+* [src/mcp.rs](file:///Users/ench/projects/macos-agent-sandbox/src/mcp.rs) - Model Context Protocol JSON-RPC stdio engine.
+* [src/cli.rs](file:///Users/ench/projects/macos-agent-sandbox/src/cli.rs) - Terminal UI styling, completions, and man page rendering.
+* [share/man/man1/](file:///Users/ench/projects/macos-agent-sandbox/share/man/man1) - Unix roff man pages (`agent-sandbox.1`, `agent-broker.1`).
+* [completions/](file:///Users/ench/projects/macos-agent-sandbox/completions) - Pre-generated shell completions for zsh, bash, fish.
+* [profiles/default.sb.template](file:///Users/ench/projects/macos-agent-sandbox/profiles/default.sb.template) - Master Apple Seatbelt profile template (SBPL).
+* [tests/integration_tests.rs](file:///Users/ench/projects/macos-agent-sandbox/tests/integration_tests.rs) - Automated security regression test suite (12 invariants).

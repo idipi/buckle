@@ -2,12 +2,13 @@
 //! Written in Rust with direct libSystem C FFI, in-memory SBPL compilation, and POSIX process control.
 
 use anyhow::{bail, Result};
-use clap::{Args, Parser, Subcommand};
-use colored::*;
+use clap::{Args, CommandFactory, Parser, Subcommand};
+use colored::Colorize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use macos_agent_sandbox::broker::{DeviceBroker, MacOSBroker};
+use macos_agent_sandbox::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
 use macos_agent_sandbox::doctor::run_doctor;
 use macos_agent_sandbox::mcp::run_mcp_stdio_server;
 use macos_agent_sandbox::process::{execute_sandboxed_process, RunOptions};
@@ -16,8 +17,9 @@ use macos_agent_sandbox::profile::{render_profile, DeviceMode, NetworkMode, Prof
 #[derive(Parser, Debug)]
 #[command(
     name = "agent-sandbox",
-    about = "Hardened Kernel-Level Isolation & Device Sandbox for AI Agents on macOS",
-    version
+    about = "Hardened Kernel-Level Mandatory Access Control & Isolation for AI Agents on macOS",
+    version,
+    styles = clap_styles()
 )]
 struct Cli {
     #[command(subcommand)]
@@ -26,16 +28,16 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Execute a command inside the hardened kernel sandbox
+    /// Execute an isolated command inside the Apple Seatbelt kernel sandbox
     Run(RunArgs),
 
-    /// Launch an interactive sandboxed shell (zsh/bash)
+    /// Launch an interactive sandboxed shell (zsh/bash) with ephemeral session storage
     Shell(ShellArgs),
 
     /// Audit system security controls and in-memory kernel sandbox
     Doctor,
 
-    /// Execute automated security isolation regression test suite
+    /// Execute automated security isolation regression test suite (12 invariants)
     Test,
 
     /// Hardware and macOS capability broker interface
@@ -43,6 +45,15 @@ enum Commands {
 
     /// Run Model Context Protocol (MCP) stdio server
     Mcp,
+
+    /// Generate shell autocompletion script (bash, zsh, fish, powershell)
+    Completions {
+        #[arg(value_enum)]
+        shell: ShellCompletion,
+    },
+
+    /// Render Unix roff man page documentation to stdout
+    Man,
 }
 
 #[derive(Args, Debug)]
@@ -161,6 +172,16 @@ fn main() -> Result<()> {
             }
         },
         Commands::Mcp => run_mcp_stdio_server(),
+        Commands::Completions { shell } => {
+            let mut cmd = Cli::command();
+            generate_completions(shell, &mut cmd, "agent-sandbox");
+            Ok(())
+        }
+        Commands::Man => {
+            let cmd = Cli::command();
+            render_man_page(cmd)?;
+            Ok(())
+        }
     }
 }
 

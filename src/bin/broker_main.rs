@@ -1,16 +1,18 @@
 //! agent-broker: Standalone CLI and MCP Server for Hardware & macOS Capabilities.
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 use macos_agent_sandbox::broker::{DeviceBroker, MacOSBroker};
+use macos_agent_sandbox::cli::{clap_styles, generate_completions, render_man_page, ShellCompletion};
 use macos_agent_sandbox::mcp::run_mcp_stdio_server;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "agent-broker",
-    about = "Audited macOS System and Device Broker for AI Agents",
-    version
+    about = "Audited macOS System and Hardware Broker for AI Agents",
+    version,
+    styles = clap_styles()
 )]
 struct Cli {
     #[command(subcommand)]
@@ -47,6 +49,13 @@ enum Commands {
     },
     /// Run Model Context Protocol (MCP) stdio server
     Mcp,
+    /// Generate shell autocompletion script (bash, zsh, fish, powershell)
+    Completions {
+        #[arg(value_enum)]
+        shell: ShellCompletion,
+    },
+    /// Render Unix roff man page documentation to stdout
+    Man,
 }
 
 #[derive(Subcommand, Debug)]
@@ -104,6 +113,14 @@ fn main() -> Result<()> {
             }
         },
         Commands::Mcp => run_mcp_stdio_server()?,
+        Commands::Completions { shell } => {
+            let mut cmd = Cli::command();
+            generate_completions(shell, &mut cmd, "agent-broker");
+        }
+        Commands::Man => {
+            let cmd = Cli::command();
+            render_man_page(cmd)?;
+        }
     }
 
     Ok(())

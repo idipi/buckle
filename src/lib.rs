@@ -1,4 +1,5 @@
 pub mod broker;
+pub mod cli;
 pub mod doctor;
 pub mod env;
 pub mod ffi;

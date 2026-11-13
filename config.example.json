@@ -1,8 +1,7 @@
 {
   "network": {
     "default_mode": "allow",
-    "proxy_port": 18080,
-    "rules_file": "rules/allowed_domains.txt"
+    "proxy_port": 18080
   },
   "devices": {
     "default_mode": "serial",

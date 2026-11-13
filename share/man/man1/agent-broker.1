@@ -1,0 +1,46 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH agent-broker 1  "agent-broker 0.2.0" 
+.SH NAME
+agent\-broker \- Audited macOS System and Hardware Broker for AI Agents
+.SH SYNOPSIS
+\fBagent\-broker\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIsubcommands\fR>
+.SH DESCRIPTION
+Audited macOS System and Hardware Broker for AI Agents
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.SH SUBCOMMANDS
+.TP
+agent\-broker\-serial(1)
+List active serial ports (/dev/cu.*)
+.TP
+agent\-broker\-usb(1)
+Inspect connected USB device tree
+.TP
+agent\-broker\-notify(1)
+Post a safe native macOS user notification
+.TP
+agent\-broker\-status(1)
+Query system battery and load telemetry
+.TP
+agent\-broker\-clip(1)
+Clipboard read/write operations
+.TP
+agent\-broker\-mcp(1)
+Run Model Context Protocol (MCP) stdio server
+.TP
+agent\-broker\-completions(1)
+Generate shell autocompletion script (bash, zsh, fish, powershell)
+.TP
+agent\-broker\-man(1)
+Render Unix roff man page documentation to stdout
+.TP
+agent\-broker\-help(1)
+Print this message or the help of the given subcommand(s)
+.SH VERSION
+v0.2.0

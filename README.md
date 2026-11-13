@@ -1,8 +1,8 @@
 # macos-agent-sandbox
 
-A production-grade, zero-overhead security toolkit for running AI coding agents, autonomous LLM workflows, and untrusted code on **macOS (Apple Silicon & Intel)**.
+A high-performance, kernel-level security toolkit for running AI coding agents, autonomous LLM workflows, and untrusted code on **macOS (Apple Silicon & Intel)**.
 
-Operates **a level below application prompts** by enforcing kernel-level Mandatory Access Control (MAC via Apple Seatbelt), strict domain-level network egress filtering, and an audited capability broker for interacting with macOS APIs and hardware peripherals (USB/Serial).
+Built in **Rust** with direct FFI bindings to Apple's `libSystem.B.dylib` (`sandbox_init`). Operates **completely in-memory with zero temporary profile files on disk**, sub-millisecond startup overhead, and zero external runtime dependencies.
 
 ---
 
@@ -17,26 +17,17 @@ Operates **a level below application prompts** by enforcing kernel-level Mandato
                                      ┌────────────────────────┴────────────────────────┐
                                      ▼                                                 ▼
 ┌────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────┐
-│        1. Apple Seatbelt (Kernel Sandbox Engine)       │   │        2. Audited Capability Broker (CLI & MCP)         │
-│   Enforced directly via /usr/bin/sandbox-exec (SBPL)   │   │     Safely bridges to macOS APIs & Hardware Devices     │
+│     1. Apple Seatbelt (In-Memory Kernel Sandbox)       │   │        2. Audited Capability Broker (CLI & MCP)         │
+│   Native Rust FFI -> libSystem sandbox_init() in RAM   │   │     Safely bridges to macOS APIs & Hardware Devices     │
 ├────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ [✓] Read/Write: Current project workspace & /tmp       │   │ [✓] Serial: /dev/cu.* microcontrollers (8N1, timeout)   │
+│ [✓] Read/Write: Current project workspace & tmpfs      │   │ [✓] Serial: /dev/cu.* microcontrollers (8N1, timeout)   │
 │ [✓] Read-only:  System binaries, toolchains, libs      │   │ [✓] USB:    Query USB hardware topology via profiler    │
-│ [X] BLOCKED:    ~/.ssh, ~/.gnupg, Keychains            │   │ [✓] macOS:  Sanitized desktop notifications             │
+│ [✓] Flashing:   IOKit USB access (openocd, qdl, dfu)   │   │ [✓] Flashing: Direct libusb & JTAG / EDL endpoint access│
+│ [X] BLOCKED:    ~/.ssh, ~/.gnupg, Keychains (write)    │   │ [✓] macOS:  Sanitized desktop notifications             │
 │ [X] BLOCKED:    Browser sessions, cookies, history     │   │ [✓] macOS:  Controlled clipboard & system telemetry    │
-│ [X] BLOCKED:    Raw disk access (/dev/disk*, rdisk*)   │   │ [✓] MCP:    Standard JSON-RPC 2.0 stdio server          │
-└────────────────────────────┬───────────────────────────┘   └─────────────────────────────────────────────────────────┘
-                             │
-                             ▼
-┌────────────────────────────────────────────────────────┐
-│           3. Egress-Filtering Local Proxy              │
-│       Enforces Whitelist for Outbound Connections      │
-├────────────────────────────────────────────────────────┤
-│ [✓] Allowed: LLM APIs (Anthropic, Gemini, OpenAI)      │
-│ [✓] Allowed: Package registries (GitHub, PyPI, npm)    │
-│ [X] BLOCKED: Untrusted external domains (HTTP 403)     │
-│ [X] BLOCKED: Direct IP connects blocked by kernel EPERM│
-└────────────────────────────────────────────────────────┘
+│ [X] BLOCKED:    Raw disk access (/dev/disk*, rdisk*)   │   │ [✓] MCP:    High-speed JSON-RPC 2.0 stdio server        │
+│ [X] SCRUBBED:   All host secrets from environment vars │   │ [✓] Clean:  Automatic orphan process tree reaper       │
+└────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────┘
 ```
 
 ---

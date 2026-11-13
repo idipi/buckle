@@ -1,0 +1,30 @@
+[package]
+name = "macos-agent-sandbox"
+version = "0.2.0"
+edition = "2021"
+authors = ["Evgeniy <ench@flammenwerfer.local>"]
+description = "Kernel-level Seatbelt Sandbox & Hardware Capability Broker for AI Agents on macOS"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "agent-sandbox"
+path = "src/main.rs"
+
+[[bin]]
+name = "agent-broker"
+path = "src/bin/broker_main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+libc = "0.2"
+anyhow = "1.0"
+colored = "2.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

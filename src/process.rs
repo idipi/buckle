@@ -5,12 +5,9 @@ use anyhow::{bail, Context, Result};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicI32, Ordering};
 
 use crate::env::{sanitize_environment, to_c_env};
 use crate::ffi::apply_sandbox_profile;
-
-static ACTIVE_CHILD_PGID: AtomicI32 = AtomicI32::new(0);
 
 /// RAII Guard managing an ephemeral session directory in /private/tmp.
 /// Automatically purges all temporary compiler artifacts and session data on drop.
@@ -117,14 +114,11 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
 
     let (_c_env_strings, c_env_ptrs) = to_c_env(&env_map);
     let workspace_c = CString::new(options.workspace.to_string_lossy().as_bytes())?;
-    let is_interactive = options.is_interactive_shell;
 
-    // 3. Register parent signal handlers for non-interactive execution
-    if !is_interactive {
-        unsafe {
-            libc::signal(libc::SIGINT, parent_signal_handler as *const () as usize);
-            libc::signal(libc::SIGTERM, parent_signal_handler as *const () as usize);
-        }
+    // 3. Parent ignores SIGINT and SIGQUIT so child (e.g. agy, zsh, vim) handles keyboard interrupts directly
+    unsafe {
+        libc::signal(libc::SIGINT, libc::SIG_IGN);
+        libc::signal(libc::SIGQUIT, libc::SIG_IGN);
     }
 
     let profile_string = options.profile_content.to_string();
@@ -138,13 +132,11 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
     if pid == 0 {
         // ================= CHILD PROCESS =================
         unsafe {
-            // A. Non-interactive commands get their own process group for daemon reaping.
-            // Interactive shells inherit the controlling terminal process group directly.
-            if !is_interactive {
-                libc::setpgid(0, 0);
-            }
+            // Restore default signal handling in child
+            libc::signal(libc::SIGINT, libc::SIG_DFL);
+            libc::signal(libc::SIGQUIT, libc::SIG_DFL);
 
-            // B. Bump resource limits (file descriptors to 10240)
+            // A. Bump resource limits (file descriptors to 10240)
             let mut rlim = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
             if libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) == 0 {
                 let target = if rlim.rlim_max > 0 { std::cmp::min(10240, rlim.rlim_max) } else { 10240 };
@@ -152,19 +144,19 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
                 let _ = libc::setrlimit(libc::RLIMIT_NOFILE, &rlim);
             }
 
-            // C. Apply in-memory Apple Seatbelt sandbox
+            // B. Apply in-memory Apple Seatbelt sandbox
             if let Err(e) = apply_sandbox_profile(&profile_string) {
                 eprintln!("[buckle fatal] Failed to apply kernel sandbox: {}", e);
                 libc::_exit(126);
             }
 
-            // D. Change to workspace directory
+            // C. Change to workspace directory
             if libc::chdir(workspace_c.as_ptr()) != 0 {
                 eprintln!("[buckle fatal] chdir to workspace failed");
                 libc::_exit(125);
             }
 
-            // E. Execute binary via execve
+            // D. Execute binary via execve
             libc::execve(bin_c.as_ptr(), c_arg_ptrs.as_ptr(), c_env_ptrs.as_ptr());
 
             // If execve returns, an error occurred
@@ -175,19 +167,13 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
     }
 
     // ================= PARENT PROCESS =================
-    ACTIVE_CHILD_PGID.store(pid, Ordering::SeqCst);
-
     let mut status: libc::c_int = 0;
     let res = unsafe { libc::waitpid(pid, &mut status, 0) };
 
-    // Reset signal handlers and active pgid
-    ACTIVE_CHILD_PGID.store(0, Ordering::SeqCst);
-
-    // RAII Reaper: For non-interactive commands, terminate any orphaned background daemons
-    if !is_interactive {
-        unsafe {
-            let _ = libc::killpg(pid, libc::SIGTERM);
-        }
+    // Restore parent default signal handling
+    unsafe {
+        libc::signal(libc::SIGINT, libc::SIG_DFL);
+        libc::signal(libc::SIGQUIT, libc::SIG_DFL);
     }
 
     if res < 0 {
@@ -201,14 +187,5 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
         Ok(128 + libc::WTERMSIG(status))
     } else {
         Ok(1)
-    }
-}
-
-extern "C" fn parent_signal_handler(sig: libc::c_int) {
-    let pgid = ACTIVE_CHILD_PGID.load(Ordering::SeqCst);
-    if pgid > 0 {
-        unsafe {
-            let _ = libc::killpg(pgid, sig);
-        }
     }
 }

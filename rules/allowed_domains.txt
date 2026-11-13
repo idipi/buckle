@@ -5,6 +5,13 @@
 # LLM Providers & AI APIs
 api.anthropic.com
 generativelanguage.googleapis.com
+aicode.googleapis.com
+daily-cloudcode-pa.googleapis.com
+oauth2.googleapis.com
+play.googleapis.com
+*.googleapis.com
+*.google.com
+*.googleusercontent.com
 api.openai.com
 api.groq.com
 openrouter.ai

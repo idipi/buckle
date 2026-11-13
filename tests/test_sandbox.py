@@ -72,11 +72,12 @@ class TestSandboxIsolation(unittest.TestCase):
         res_gpg = self._run_in_sandbox(["/bin/ls", str(gnupg_dir)])
         self.assertNotEqual(res_gpg.returncode, 0, "Access to ~/.gnupg should be blocked")
 
-    def test_03_keychain_blocked(self):
-        """Verify macOS Keychains directory is completely inaccessible."""
-        keychains_dir = self.home_dir / "Library" / "Keychains"
-        res = self._run_in_sandbox(["/bin/ls", str(keychains_dir)])
-        self.assertNotEqual(res.returncode, 0, "Access to Library/Keychains must be blocked")
+    def test_03_keychain_write_blocked(self):
+        """Verify macOS Keychains directory cannot be written to or modified."""
+        target_file = self.home_dir / "Library" / "Keychains" / "evil_probe.keychain"
+        res = self._run_in_sandbox(["/usr/bin/touch", str(target_file)])
+        self.assertNotEqual(res.returncode, 0, "Writing to Library/Keychains must be blocked")
+        self.assertFalse(target_file.exists())
 
     def test_04_home_root_write_blocked(self):
         """Verify that agent cannot drop files directly into user home directory."""

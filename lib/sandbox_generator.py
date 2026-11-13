@@ -86,13 +86,13 @@ class SandboxEngine:
             )
 
         # network_mode == 'proxy'
-        # Crucial security invariant: Direct egress is denied by kernel; only loopback is permitted.
-        # Note: macOS Seatbelt requires host to be 'localhost' or '*' (does not accept numeric '127.0.0.1')
-        port_spec = f":{proxy_port}" if proxy_port else ":*"
+        # Crucial security invariant: Direct external egress is denied by kernel; only loopback is permitted.
+        # Loopback inbound, bind, and outbound are allowed so local dev servers, tests, and tool IPC (e.g. agy language server) function cleanly.
         return (
-            f";; Egress restricted strictly to local proxy on localhost{port_spec}\n"
-            f'(allow network-outbound (remote ip "localhost{port_spec}"))\n'
-            f'(allow network-inbound (local ip "localhost{port_spec}"))\n'
+            ";; Egress restricted strictly to local proxy and loopback IPC on localhost\n"
+            '(allow network-bind (local ip "localhost:*"))\n'
+            '(allow network-inbound (local ip "localhost:*"))\n'
+            '(allow network-outbound (remote ip "localhost:*"))\n'
             "(allow system-socket)"
         )
 

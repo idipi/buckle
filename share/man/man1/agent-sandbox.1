@@ -4,10 +4,13 @@
 .SH NAME
 agent\-sandbox \- Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
 .SH SYNOPSIS
-\fBagent\-sandbox\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIsubcommands\fR>
+\fBagent\-sandbox\fR [\fB\-v \fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 Hardened Kernel\-Level Mandatory Access Control & Isolation for AI Agents on macOS
 .SH OPTIONS
+.TP
+\fB\-v\fR
+Print version information (\-v)
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help
@@ -33,6 +36,9 @@ Hardware and macOS capability broker interface
 .TP
 agent\-sandbox\-mcp(1)
 Run Model Context Protocol (MCP) stdio server
+.TP
+agent\-sandbox\-version(1)
+Print version information
 .TP
 agent\-sandbox\-completions(1)
 Generate shell autocompletion script (bash, zsh, fish, powershell)

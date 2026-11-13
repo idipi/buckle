@@ -15,8 +15,12 @@ use macos_agent_sandbox::mcp::run_mcp_stdio_server;
     styles = clap_styles()
 )]
 struct Cli {
+    /// Print version information (-v)
+    #[arg(short = 'v', action = clap::ArgAction::Version)]
+    _version: Option<bool>,
+
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -49,6 +53,8 @@ enum Commands {
     },
     /// Run Model Context Protocol (MCP) stdio server
     Mcp,
+    /// Print version information
+    Version,
     /// Generate shell autocompletion script (bash, zsh, fish, powershell)
     Completions {
         #[arg(value_enum)]
@@ -77,7 +83,17 @@ enum ClipAction {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    match cli.command {
+    let command = match cli.command {
+        Some(c) => c,
+        None => {
+            let mut help_cmd = Cli::command();
+            let _ = help_cmd.print_help();
+            println!();
+            return Ok(());
+        }
+    };
+
+    match command {
         Commands::Serial { action } => match action {
             SerialAction::List => {
                 let ports = DeviceBroker::list_serial_ports()?;
@@ -113,6 +129,9 @@ fn main() -> Result<()> {
             }
         },
         Commands::Mcp => run_mcp_stdio_server()?,
+        Commands::Version => {
+            println!("agent-broker {}", env!("CARGO_PKG_VERSION"));
+        }
         Commands::Completions { shell } => {
             let mut cmd = Cli::command();
             generate_completions(shell, &mut cmd, "agent-broker");

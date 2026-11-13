@@ -43,6 +43,9 @@ _agent__sandbox() {
             agent__sandbox,test)
                 cmd="agent__sandbox__subcmd__test"
                 ;;
+            agent__sandbox,version)
+                cmd="agent__sandbox__subcmd__version"
+                ;;
             agent__sandbox__subcmd__broker,help)
                 cmd="agent__sandbox__subcmd__broker__subcmd__help"
                 ;;
@@ -100,6 +103,9 @@ _agent__sandbox() {
             agent__sandbox__subcmd__help,test)
                 cmd="agent__sandbox__subcmd__help__subcmd__test"
                 ;;
+            agent__sandbox__subcmd__help,version)
+                cmd="agent__sandbox__subcmd__help__subcmd__version"
+                ;;
             agent__sandbox__subcmd__help__subcmd__broker,notify)
                 cmd="agent__sandbox__subcmd__help__subcmd__broker__subcmd__notify"
                 ;;
@@ -119,7 +125,7 @@ _agent__sandbox() {
 
     case "${cmd}" in
         agent__sandbox)
-            opts="-h -V --help --version run shell doctor test broker mcp completions man help"
+            opts="-v -h -V --help --version run shell doctor test broker mcp version completions man help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -339,7 +345,7 @@ _agent__sandbox() {
             return 0
             ;;
         agent__subcmd__sandbox__subcmd__help)
-            opts="run shell doctor test broker mcp completions man help"
+            opts="run shell doctor test broker mcp version completions man help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -534,6 +540,20 @@ _agent__sandbox() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        agent__subcmd__sandbox__subcmd__help__subcmd__version)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         agent__subcmd__sandbox__subcmd__man)
             opts="-h --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -671,6 +691,20 @@ _agent__sandbox() {
             return 0
             ;;
         agent__subcmd__sandbox__subcmd__test)
+            opts="-h --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        agent__subcmd__sandbox__subcmd__version)
             opts="-h --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

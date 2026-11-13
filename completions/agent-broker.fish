@@ -1,6 +1,6 @@
 # Print an optspec for argparse to handle cmd's options that are independent of any subcommand.
 function __fish_agent_broker_global_optspecs
-    string join \n h/help V/version
+    string join \n v h/help V/version
 end
 
 function __fish_agent_broker_needs_command
@@ -24,6 +24,7 @@ function __fish_agent_broker_using_subcommand
     contains -- $cmd[1] $argv
 end
 
+complete -c agent-broker -n "__fish_agent_broker_needs_command" -s v -d 'Print version information (-v)'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -s h -l help -d 'Print help'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -s V -l version -d 'Print version'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "serial" -d 'List active serial ports (/dev/cu.*)'
@@ -32,6 +33,7 @@ complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "notify" -
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "status" -d 'Query system battery and load telemetry'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "clip" -d 'Clipboard read/write operations'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "mcp" -d 'Run Model Context Protocol (MCP) stdio server'
+complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "version" -d 'Print version information'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "completions" -d 'Generate shell autocompletion script (bash, zsh, fish, powershell)'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "man" -d 'Render Unix roff man page documentation to stdout'
 complete -c agent-broker -n "__fish_agent_broker_needs_command" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
@@ -62,17 +64,19 @@ complete -c agent-broker -n "__fish_agent_broker_using_subcommand clip; and __fi
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand clip; and __fish_seen_subcommand_from help" -f -a "set"
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand clip; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand mcp" -s h -l help -d 'Print help'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand version" -s h -l help -d 'Print help'
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand completions" -s h -l help -d 'Print help'
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand man" -s h -l help -d 'Print help'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "serial" -d 'List active serial ports (/dev/cu.*)'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "usb" -d 'Inspect connected USB device tree'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "notify" -d 'Post a safe native macOS user notification'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "status" -d 'Query system battery and load telemetry'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "clip" -d 'Clipboard read/write operations'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "mcp" -d 'Run Model Context Protocol (MCP) stdio server'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "completions" -d 'Generate shell autocompletion script (bash, zsh, fish, powershell)'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "man" -d 'Render Unix roff man page documentation to stdout'
-complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp completions man help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "serial" -d 'List active serial ports (/dev/cu.*)'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "usb" -d 'Inspect connected USB device tree'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "notify" -d 'Post a safe native macOS user notification'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "status" -d 'Query system battery and load telemetry'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "clip" -d 'Clipboard read/write operations'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "mcp" -d 'Run Model Context Protocol (MCP) stdio server'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "version" -d 'Print version information'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "completions" -d 'Generate shell autocompletion script (bash, zsh, fish, powershell)'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "man" -d 'Render Unix roff man page documentation to stdout'
+complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and not __fish_seen_subcommand_from serial usb notify status clip mcp version completions man help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and __fish_seen_subcommand_from serial" -f -a "list"
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and __fish_seen_subcommand_from usb" -f -a "list"
 complete -c agent-broker -n "__fish_agent_broker_using_subcommand help; and __fish_seen_subcommand_from clip" -f -a "get"

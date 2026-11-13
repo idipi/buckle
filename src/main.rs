@@ -22,8 +22,12 @@ use macos_agent_sandbox::profile::{render_profile, DeviceMode, NetworkMode, Prof
     styles = clap_styles()
 )]
 struct Cli {
+    /// Print version information (-v)
+    #[arg(short = 'v', action = clap::ArgAction::Version)]
+    _version: Option<bool>,
+
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -45,6 +49,9 @@ enum Commands {
 
     /// Run Model Context Protocol (MCP) stdio server
     Mcp,
+
+    /// Print version information
+    Version,
 
     /// Generate shell autocompletion script (bash, zsh, fish, powershell)
     Completions {
@@ -131,7 +138,17 @@ enum BrokerSubcommands {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    match cli.command {
+    let command = match cli.command {
+        Some(c) => c,
+        None => {
+            let mut help_cmd = Cli::command();
+            let _ = help_cmd.print_help();
+            println!();
+            return Ok(());
+        }
+    };
+
+    match command {
         Commands::Run(args) => {
             let code = run_command(&args.common, &args.command, false)?;
             std::process::exit(code);
@@ -172,6 +189,10 @@ fn main() -> Result<()> {
             }
         },
         Commands::Mcp => run_mcp_stdio_server(),
+        Commands::Version => {
+            println!("agent-sandbox {}", env!("CARGO_PKG_VERSION"));
+            Ok(())
+        }
         Commands::Completions { shell } => {
             let mut cmd = Cli::command();
             generate_completions(shell, &mut cmd, "agent-sandbox");

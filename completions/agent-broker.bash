@@ -43,6 +43,9 @@ _agent__broker() {
             agent__broker,usb)
                 cmd="agent__broker__subcmd__usb"
                 ;;
+            agent__broker,version)
+                cmd="agent__broker__subcmd__version"
+                ;;
             agent__broker__subcmd__clip,get)
                 cmd="agent__broker__subcmd__clip__subcmd__get"
                 ;;
@@ -88,6 +91,9 @@ _agent__broker() {
             agent__broker__subcmd__help,usb)
                 cmd="agent__broker__subcmd__help__subcmd__usb"
                 ;;
+            agent__broker__subcmd__help,version)
+                cmd="agent__broker__subcmd__help__subcmd__version"
+                ;;
             agent__broker__subcmd__help__subcmd__clip,get)
                 cmd="agent__broker__subcmd__help__subcmd__clip__subcmd__get"
                 ;;
@@ -131,7 +137,7 @@ _agent__broker() {
 
     case "${cmd}" in
         agent__broker)
-            opts="-h -V --help --version serial usb notify status clip mcp completions man help"
+            opts="-v -h -V --help --version serial usb notify status clip mcp version completions man help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -257,7 +263,7 @@ _agent__broker() {
             return 0
             ;;
         agent__subcmd__broker__subcmd__help)
-            opts="serial usb notify status clip mcp completions man help"
+            opts="serial usb notify status clip mcp version completions man help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -441,6 +447,20 @@ _agent__broker() {
         agent__subcmd__broker__subcmd__help__subcmd__usb__subcmd__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        agent__subcmd__broker__subcmd__help__subcmd__version)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -661,6 +681,20 @@ _agent__broker() {
         agent__subcmd__broker__subcmd__usb__subcmd__list)
             opts="-h --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        agent__subcmd__broker__subcmd__version)
+            opts="-h --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi

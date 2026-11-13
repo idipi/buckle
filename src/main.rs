@@ -229,7 +229,7 @@ fn run_shell(common: &CommonSandboxArgs) -> Result<i32> {
     let shell_bin = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
     println!("{}", "[*] Buckling up: Spawning sandboxed interactive shell...".cyan());
     println!("{}", "[*] Press Ctrl+D or type 'exit' to leave.".dimmed());
-    run_command(common, &[shell_bin, "-l".to_string()], true)
+    run_command(common, &[shell_bin, "-i".to_string(), "-l".to_string()], true)
 }
 
 fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -> Result<i32> {

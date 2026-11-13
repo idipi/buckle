@@ -109,16 +109,24 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
     env_map.insert("HISTFILE".to_string(), temp_guard.session_dir.join(".zsh_history").to_string_lossy().to_string());
     env_map.insert("PROMPT".to_string(), "[buckle] %~ %# ".to_string());
 
-    let (_c_env_strings, c_env_ptrs) = to_c_env(&env_map);
-    let workspace_c = CString::new(options.workspace.to_string_lossy().as_bytes())?;
-
-    // 3. Register parent signal handlers for process group reaping
-    unsafe {
-        libc::signal(libc::SIGINT, parent_signal_handler as *const () as usize);
-        libc::signal(libc::SIGTERM, parent_signal_handler as *const () as usize);
+    if options.is_interactive_shell {
+        let zshrc_path = temp_guard.session_dir.join(".zshrc");
+        let zshrc_content = "PROMPT=\"%F{cyan}[buckle]%f %F{blue}%~%f %# \"\n";
+        let _ = std::fs::write(zshrc_path, zshrc_content);
     }
 
+    let (_c_env_strings, c_env_ptrs) = to_c_env(&env_map);
+    let workspace_c = CString::new(options.workspace.to_string_lossy().as_bytes())?;
     let is_interactive = options.is_interactive_shell;
+
+    // 3. Register parent signal handlers for non-interactive execution
+    if !is_interactive {
+        unsafe {
+            libc::signal(libc::SIGINT, parent_signal_handler as *const () as usize);
+            libc::signal(libc::SIGTERM, parent_signal_handler as *const () as usize);
+        }
+    }
+
     let profile_string = options.profile_content.to_string();
 
     // 4. Fork child process
@@ -130,15 +138,13 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
     if pid == 0 {
         // ================= CHILD PROCESS =================
         unsafe {
-            // A. Create new process group
-            libc::setpgid(0, 0);
-
-            // B. If interactive shell, claim controlling terminal
-            if is_interactive && libc::isatty(0) == 1 {
-                libc::tcsetpgrp(0, libc::getpid());
+            // A. Non-interactive commands get their own process group for daemon reaping.
+            // Interactive shells inherit the controlling terminal process group directly.
+            if !is_interactive {
+                libc::setpgid(0, 0);
             }
 
-            // C. Bump resource limits (file descriptors to 10240)
+            // B. Bump resource limits (file descriptors to 10240)
             let mut rlim = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
             if libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) == 0 {
                 let target = if rlim.rlim_max > 0 { std::cmp::min(10240, rlim.rlim_max) } else { 10240 };
@@ -146,19 +152,19 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
                 let _ = libc::setrlimit(libc::RLIMIT_NOFILE, &rlim);
             }
 
-            // D. Apply in-memory Apple Seatbelt sandbox
+            // C. Apply in-memory Apple Seatbelt sandbox
             if let Err(e) = apply_sandbox_profile(&profile_string) {
                 eprintln!("[buckle fatal] Failed to apply kernel sandbox: {}", e);
                 libc::_exit(126);
             }
 
-            // E. Change to workspace directory
+            // D. Change to workspace directory
             if libc::chdir(workspace_c.as_ptr()) != 0 {
                 eprintln!("[buckle fatal] chdir to workspace failed");
                 libc::_exit(125);
             }
 
-            // F. Execute binary via execve
+            // E. Execute binary via execve
             libc::execve(bin_c.as_ptr(), c_arg_ptrs.as_ptr(), c_env_ptrs.as_ptr());
 
             // If execve returns, an error occurred
@@ -177,12 +183,10 @@ pub fn execute_sandboxed_process(options: &RunOptions) -> Result<i32> {
     // Reset signal handlers and active pgid
     ACTIVE_CHILD_PGID.store(0, Ordering::SeqCst);
 
-    // RAII Reaper: Ensure any orphaned child daemons in the process group are terminated
-    unsafe {
-        let _ = libc::killpg(pid, libc::SIGTERM);
-        if is_interactive && libc::isatty(0) == 1 {
-            // Restore terminal control to parent shell
-            libc::tcsetpgrp(0, libc::getpgrp());
+    // RAII Reaper: For non-interactive commands, terminate any orphaned background daemons
+    if !is_interactive {
+        unsafe {
+            let _ = libc::killpg(pid, libc::SIGTERM);
         }
     }
 

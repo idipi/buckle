@@ -221,19 +221,33 @@ fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -
 }
 
 fn run_tests() -> Result<()> {
-    println!("{}", "Running automated security isolation regression tests (Rust)...".bold().cyan());
+    println!("{}", "Running automated security isolation regression tests (Native Rust)...".bold().cyan());
 
-    let test_script = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test_sandbox.py");
-    if test_script.exists() {
-        let status = std::process::Command::new("/opt/homebrew/bin/python3")
-            .arg(test_script)
-            .status()?;
-        if !status.success() {
-            bail!("Automated test suite failed with status: {}", status);
-        }
-    } else {
-        println!("Test script not found at {:?}", test_script);
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let cargo_toml = manifest_dir.join("Cargo.toml");
+
+    if !cargo_toml.exists() {
+        bail!(
+            "Source repository not found at {:?}. Cannot run cargo test without project source.",
+            manifest_dir
+        );
     }
 
-    Ok(())
+    let status = std::process::Command::new("cargo")
+        .arg("test")
+        .arg("--test")
+        .arg("integration_tests")
+        .arg("--")
+        .arg("--nocapture")
+        .current_dir(manifest_dir)
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            println!("{}", "\n[+] All native Rust security tests PASSED.".green().bold());
+            Ok(())
+        }
+        Ok(s) => bail!("Integration tests failed with exit code: {:?}", s.code()),
+        Err(e) => bail!("Failed to execute 'cargo test': {}. Please ensure cargo is installed and in PATH.", e),
+    }
 }

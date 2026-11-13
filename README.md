@@ -106,10 +106,11 @@ Inside this shell:
 * Write files in your workspace $\rightarrow$ Allowed
 
 ### 4. Run the Automated Security Test Suite
-Verify that all 10 kernel isolation invariants pass:
+Verify that all kernel isolation invariants pass (via CLI or cargo):
 
 ```bash
-python3 tests/test_sandbox.py
+./bin/agent-sandbox test
+# or: cargo test --test integration_tests
 ```
 
 ---
@@ -166,12 +167,9 @@ Add the broker to your agent's MCP configuration (`mcp_config.json` or `claude_d
 ```json
 {
   "mcpServers": {
-    "macos-agent-broker": {
-      "command": "/opt/homebrew/bin/python3",
-      "args": [
-        "/Users/ench/projects/macos-agent-sandbox/bin/agent-broker",
-        "mcp"
-      ]
+    "macos-broker": {
+      "command": "/Users/ench/projects/macos-agent-sandbox/bin/agent-broker",
+      "args": ["mcp"]
     }
   }
 }

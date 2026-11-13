@@ -207,7 +207,7 @@ Add `buckle-broker` to your agent's MCP configuration (`mcp_config.json`):
 {
   "mcpServers": {
     "buckle-broker": {
-      "command": "/Users/ench/projects/macos-agent-sandbox/bin/buckle-broker",
+      "command": "buckle-broker",
       "args": ["mcp"]
     }
   }
@@ -228,16 +228,16 @@ alias safe="buckle up"
 
 ## Directory Structure
 
-* [src/main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/main.rs) - Primary CLI runner (`buckle` and `buckle up`).
-* [src/bin/broker_main.rs](file:///Users/ench/projects/macos-agent-sandbox/src/bin/broker_main.rs) - Standalone `buckle-broker` binary CLI.
-* [src/ffi.rs](file:///Users/ench/projects/macos-agent-sandbox/src/ffi.rs) - Direct C FFI bindings to Apple Seatbelt (`sandbox_init`).
-* [src/process.rs](file:///Users/ench/projects/macos-agent-sandbox/src/process.rs) - Process manager (`fork`, `execve`, TTY `tcsetpgrp`, `rlimit`, session cleanup).
-* [src/profile.rs](file:///Users/ench/projects/macos-agent-sandbox/src/profile.rs) - In-memory SBPL profile compiler and template engine.
-* [src/env.rs](file:///Users/ench/projects/macos-agent-sandbox/src/env.rs) - Environment variable secret sanitizer.
-* [src/broker.rs](file:///Users/ench/projects/macos-agent-sandbox/src/broker.rs) - Audited hardware and macOS capability implementations.
-* [src/mcp.rs](file:///Users/ench/projects/macos-agent-sandbox/src/mcp.rs) - Model Context Protocol JSON-RPC stdio engine (`buckle-broker`).
-* [src/cli.rs](file:///Users/ench/projects/macos-agent-sandbox/src/cli.rs) - Terminal UI styling, completions, and man page rendering.
-* [share/man/man1/](file:///Users/ench/projects/macos-agent-sandbox/share/man/man1) - Unix roff man pages (`buckle.1`, `buckle-broker.1`).
-* [completions/](file:///Users/ench/projects/macos-agent-sandbox/completions) - Pre-generated shell completions for zsh, bash, fish.
-* [profiles/default.sb.template](file:///Users/ench/projects/macos-agent-sandbox/profiles/default.sb.template) - Master Apple Seatbelt profile template (SBPL).
-* [tests/integration_tests.rs](file:///Users/ench/projects/macos-agent-sandbox/tests/integration_tests.rs) - Automated security regression test suite (14 invariants).
+* [src/main.rs](src/main.rs) - Primary CLI runner (`buckle` and `buckle up`).
+* [src/bin/broker_main.rs](src/bin/broker_main.rs) - Standalone `buckle-broker` binary CLI.
+* [src/ffi.rs](src/ffi.rs) - Direct C FFI bindings to Apple Seatbelt (`sandbox_init`).
+* [src/process.rs](src/process.rs) - Process manager (`fork`, `execve`, TTY `tcsetpgrp`, `rlimit`, session cleanup).
+* [src/profile.rs](src/profile.rs) - In-memory SBPL profile compiler and template engine.
+* [src/env.rs](src/env.rs) - Environment variable secret sanitizer.
+* [src/broker.rs](src/broker.rs) - Audited hardware and macOS capability implementations.
+* [src/mcp.rs](src/mcp.rs) - Model Context Protocol JSON-RPC stdio engine (`buckle-broker`).
+* [src/cli.rs](src/cli.rs) - Terminal UI styling, completions, and man page rendering.
+* [share/man/man1/](share/man/man1/) - Unix roff man pages (`buckle.1`, `buckle-broker.1`).
+* [completions/](completions/) - Pre-generated shell completions for zsh, bash, fish.
+* [profiles/default.sb.template](profiles/default.sb.template) - Master Apple Seatbelt profile template (SBPL).
+* [tests/integration_tests.rs](tests/integration_tests.rs) - Automated security regression test suite (14 invariants).

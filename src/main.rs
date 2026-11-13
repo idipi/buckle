@@ -235,7 +235,7 @@ fn run_shell(common: &CommonSandboxArgs) -> Result<i32> {
 fn run_command(common: &CommonSandboxArgs, command: &[String], is_shell: bool) -> Result<i32> {
     let cwd = std::env::current_dir()?;
     let workspace = common.workspace.clone().unwrap_or(cwd).canonicalize().unwrap_or_else(|_| common.workspace.clone().unwrap_or_default());
-    let home = std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("/Users/ench"));
+    let home = std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("/var/empty"));
 
     // Safety Guard: Prohibit accidental workspace execution in $HOME without explicit flag
     if workspace == home && !common.allow_home {

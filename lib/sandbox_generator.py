@@ -18,10 +18,10 @@ TEMPLATE_PATH = BASE_DIR / "profiles" / "default.sb.template"
 class SandboxEngine:
     """Manages profile compilation, environment preparation, and sandboxed execution."""
 
-    def __init__(self, workspace_dir=None, network_mode="proxy", device_mode="serial"):
+    def __init__(self, workspace_dir=None, network_mode="allow", device_mode="serial"):
         self.workspace_dir = Path(workspace_dir or os.getcwd()).resolve()
         self.home_dir = Path.home().resolve()
-        self.network_mode = network_mode.lower()  # 'proxy', 'allow', or 'deny'
+        self.network_mode = network_mode.lower()  # 'allow', 'proxy', or 'deny'
         self.device_mode = device_mode.lower()    # 'serial', 'allow', or 'deny'
         self.extra_writable = []
 
@@ -129,7 +129,7 @@ class SandboxEngine:
 def run_sandboxed_command(
     command_args,
     workspace_dir=None,
-    network_mode="proxy",
+    network_mode="allow",
     device_mode="serial",
     extra_writable=None,
     proxy_server=None,

@@ -145,8 +145,8 @@ def main():
     run_parser = subparsers.add_parser("run", help="Run a command inside the hardened sandbox")
     run_parser.add_argument("--workspace", "-w", help="Path to workspace directory (default: current directory)")
     run_parser.add_argument(
-        "--net", choices=["proxy", "allow", "deny"], default="proxy",
-        help="Outbound network policy (default: proxy)"
+        "--net", choices=["allow", "proxy", "deny"], default="allow",
+        help="Outbound network policy (default: allow)"
     )
     run_parser.add_argument(
         "--devices", choices=["serial", "allow", "deny"], default="serial",
@@ -162,7 +162,7 @@ def main():
     # Subcommand: shell
     shell_parser = subparsers.add_parser("shell", help="Launch an interactive sandboxed shell")
     shell_parser.add_argument("--workspace", "-w", help="Path to workspace directory")
-    shell_parser.add_argument("--net", choices=["proxy", "allow", "deny"], default="proxy")
+    shell_parser.add_argument("--net", choices=["allow", "proxy", "deny"], default="allow")
     shell_parser.add_argument("--devices", choices=["serial", "allow", "deny"], default="serial")
     shell_parser.add_argument("--writable", action="append", default=[])
     shell_parser.add_argument("--allow-home", action="store_true", help="Permit using $HOME directly as workspace")

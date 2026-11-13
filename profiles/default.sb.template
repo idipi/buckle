@@ -59,7 +59,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 4. Device Access Layer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Allow standard pseudo-devices
+;; Allow standard pseudo-devices & terminal ioctl for job control
+(allow file-ioctl
+    (literal "/dev/tty")
+    (subpath "/dev"))
+
 (allow file-read* file-write*
     (literal "/dev/null")
     (literal "/dev/zero")

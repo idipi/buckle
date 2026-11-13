@@ -77,6 +77,9 @@
     (literal "/dev/tty")
     (subpath "/dev"))
 
+;; Allow directory listing of /dev (required for opendir, globbing /dev/cu.*, and ttyname)
+(allow file-read-data (literal "/dev"))
+
 (allow file-read* file-write*
     (literal "/dev/null")
     (literal "/dev/zero")
@@ -87,12 +90,7 @@
     (literal "/dev/autofs_nowait")
     (literal "/dev/dtracehelper")
     (subpath "/dev/fd")
-    (subpath "/dev/pts"))
-
-;; Hardware device rules (Serial / USB / Microcontrollers / Flashing probes)
-(allow file-read* file-write*
-    (subpath "/dev/cu.")
-    (subpath "/dev/tty."))
+    (regex #"^/dev/ttys[0-9]*"))
 
 ;; Allow IOKit user clients for USB debugging, flashing, and logic analyzers
 ;; Supports: openocd, probe-rs, st-flash, dfu-util, fastboot, qdl, sigrok

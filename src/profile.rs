@@ -114,10 +114,10 @@ fn generate_device_rules(mode: DeviceMode) -> String {
     match mode {
         DeviceMode::Deny => ";; Hardware device access explicitly denied".to_string(),
         DeviceMode::Serial => {
-            "(allow file-read* file-write*\n    (subpath \"/dev/cu.\")\n    (subpath \"/dev/tty.\"))".to_string()
+            "(allow file-read* file-write*\n    (regex #\"^/dev/cu\\.\")\n    (regex #\"^/dev/tty\\.\"))".to_string()
         }
         DeviceMode::Allow => {
-            "(allow file-read* file-write*\n    (subpath \"/dev/cu.\")\n    (subpath \"/dev/tty.\")\n    (subpath \"/dev/bpf\")\n    (subpath \"/dev/audioservices\"))".to_string()
+            "(allow file-read* file-write*\n    (regex #\"^/dev/cu\\.\")\n    (regex #\"^/dev/tty\\.\")\n    (regex #\"^/dev/bpf[0-9]*\")\n    (subpath \"/dev/audioservices\"))".to_string()
         }
     }
 }

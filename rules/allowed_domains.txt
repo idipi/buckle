@@ -12,6 +12,8 @@ play.googleapis.com
 *.googleapis.com
 *.google.com
 *.googleusercontent.com
+*.gstatic.com
+gstatic.com
 api.openai.com
 api.groq.com
 openrouter.ai
